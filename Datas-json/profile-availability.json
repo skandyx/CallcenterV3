@@ -1,0 +1,24 @@
+
+[
+  {
+    "userId": "agent_001",
+    "userName": "Alice",
+    "timestamp": "2023-10-27T12:00:00Z",
+    "profile": "Lunch",
+    "duration": 3600
+  },
+  {
+    "userId": "agent_002",
+    "userName": "Bob",
+    "timestamp": "2023-10-27T12:30:00Z",
+    "profile": "Lunch",
+    "duration": 3600
+  },
+  {
+    "userId": "agent_003",
+    "userName": "Charlie",
+    "timestamp": "2023-10-27T13:00:00Z",
+    "profile": "Meeting",
+    "duration": 1800
+  }
+]

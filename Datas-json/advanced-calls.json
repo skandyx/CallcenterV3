@@ -1,0 +1,28 @@
+
+[
+  {
+    "callId": "c1",
+    "timestamp": "2023-10-27T10:01:00Z",
+    "event": "queue_entry",
+    "to": "Sales"
+  },
+  {
+    "callId": "c1",
+    "timestamp": "2023-10-27T10:01:30Z",
+    "event": "agent_pickup",
+    "from": "Sales",
+    "to": "agent_007"
+  },
+  {
+    "callId": "c2",
+    "timestamp": "2023-10-27T10:05:00Z",
+    "event": "queue_entry",
+    "to": "Support"
+  },
+  {
+    "callId": "c3",
+    "timestamp": "2023-10-27T10:08:00Z",
+    "event": "queue_entry",
+    "to": "Sales"
+  }
+]
