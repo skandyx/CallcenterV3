@@ -6,6 +6,12 @@ import { cn } from "@/lib/utils"
 
 export const TreemapContent = (props: any) => {
     const { root, depth, x, y, width, height, index, payload, name } = props;
+
+    // Defensive check to ensure payload and payload.fill exist
+    if (!payload || !payload.fill) {
+        return null;
+    }
+
     const isLight = (payload.fill.startsWith("hsl(var(--chart-1))")); // Heuristic to check if color is light
 
     return (
