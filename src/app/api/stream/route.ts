@@ -6,6 +6,7 @@ import type { CallData } from '@/types';
 export async function POST(request: Request) {
   try {
     const body: CallData = await request.json();
+    console.log('Received basic call data:', body);
     // Basic validation
     if (!body.callId || !body.timestamp || !body.status || !body.queue) {
       return NextResponse.json({ message: 'Invalid data format' }, { status: 400 });

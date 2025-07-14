@@ -6,6 +6,7 @@ import type { AgentStatusData } from '@/types';
 export async function POST(request: Request) {
   try {
     const body: AgentStatusData = await request.json();
+    console.log('Received agent status data:', body);
     if (!body.agentId || !body.timestamp || !body.status || !body.queue) {
         return NextResponse.json({ message: 'Invalid data format' }, { status: 400 });
     }

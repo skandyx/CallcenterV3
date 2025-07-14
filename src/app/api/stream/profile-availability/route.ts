@@ -6,6 +6,7 @@ import type { ProfileAvailabilityData } from '@/types';
 export async function POST(request: Request) {
   try {
     const body: ProfileAvailabilityData = await request.json();
+    console.log('Received profile availability data:', body);
      if (!body.userId || !body.timestamp || !body.profile) {
         return NextResponse.json({ message: 'Invalid data format' }, { status: 400 });
     }

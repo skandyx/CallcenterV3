@@ -6,6 +6,7 @@ import type { AdvancedCallData } from '@/types';
 export async function POST(request: Request) {
   try {
     const body: AdvancedCallData = await request.json();
+    console.log('Received advanced call data:', body);
     if (!body.callId || !body.timestamp || !body.event) {
         return NextResponse.json({ message: 'Invalid data format' }, { status: 400 });
     }
