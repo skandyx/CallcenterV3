@@ -26,36 +26,35 @@ import {
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function Dashboard() {
   const [calls, setCalls] = useState<CallData[]>([]);
   const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you'd fetch this data from an API.
-    // For this demo, we'll use static mock data.
-    const allCalls = [
-      { "callId": "c1", "timestamp": "2023-10-27T10:00:00Z", "status": "completed", "duration": 180, "queue": "Sales" },
-      { "callId": "c2", "timestamp": "2023-10-27T10:05:00Z", "status": "abandoned", "duration": 30, "queue": "Support" },
-      { "callId": "c3", "timestamp": "2023-10-27T10:08:00Z", "status": "completed", "duration": 300, "queue": "Sales" },
-      { "callId": "c4", "timestamp": "2023-10-27T10:15:00Z", "status": "missed", "duration": 0, "queue": "Support" },
-      { "callId": "c5", "timestamp": "2023-10-27T11:20:00Z", "status": "completed", "duration": 120, "queue": "Billing" },
-      { "callId": "c6", "timestamp": "2023-10-27T11:22:00Z", "status": "completed", "duration": 240, "queue": "Sales" },
-      { "callId": "c7", "timestamp": "2023-10-27T12:30:00Z", "status": "abandoned", "duration": 45, "queue": "Support" },
-      { "callId": "c8", "timestamp": "2025-07-14T10:00:00Z", "status": "completed", "duration": 180, "queue": "Sales" }
-    ];
-    const allAdvancedCalls = [
-        { "callId": "c1", "timestamp": "2023-10-27T10:01:00Z", "event": "queue_entry", "to": "Sales" },
-        { "callId": "c1", "timestamp": "2023-10-27T10:01:30Z", "event": "agent_pickup", "from": "Sales", "to": "agent_007" },
-        { "callId": "c2", "timestamp": "2023-10-27T10:05:00Z", "event": "queue_entry", "to": "Support" },
-        { "callId": "c3", "timestamp": "2023-10-27T10:08:00Z", "event": "queue_entry", "to": "Sales" },
-        { "callId": "c8", "timestamp": "2025-07-14T10:01:00Z", "event": "queue_entry", "to": "Sales" }
-    ];
-    setCalls(allCalls);
-    setAdvancedCalls(allAdvancedCalls);
-
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/data');
+        if (!response.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        const data = await response.json();
+        setCalls(data.calls || []);
+        setAdvancedCalls(data.advancedCalls || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setCalls([]);
+        setAdvancedCalls([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
   }, []);
 
   const filteredCalls = selectedDate
@@ -82,6 +81,24 @@ export default function Dashboard() {
   ];
   const totalCountryCalls = countryData.reduce((acc, country) => acc + country.value, 0);
 
+
+  if (loading) {
+    return (
+        <div className="flex flex-col">
+            <PageHeader title="Dashboard" selectedDate={selectedDate} onDateChange={setSelectedDate} />
+            <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-24" />
+                </div>
+                <Skeleton className="h-96" />
+            </main>
+        </div>
+    )
+  }
 
   return (
     <div className="flex flex-col">
