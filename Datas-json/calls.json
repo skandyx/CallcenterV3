@@ -1,1 +1,49 @@
-[]
+
+[
+  {
+    "enter_month": "202507",
+    "enter_week": "202528",
+    "time_in_queue_seconds": 5,
+    "enter_date": "2025-07-08",
+    "calling_number": "0021628213464",
+    "less_than_120s_waittime": 1,
+    "less_than_30s_waittime": 1,
+    "enter_datetime": "2025-07-08T15:34:48.422",
+    "calling_name": "",
+    "enter_weekday": "2.Tuesday",
+    "enter_time": "15:34:48",
+    "version": 5,
+    "status_detail": "Abandoned",
+    "call_id": "347a27dd-6b07-4b55-b104-9e5ea8aa832b",
+    "queue_name": "test",
+    "enter_hour": 15,
+    "calling_forward": "",
+    "less_than_60s_waittime": 1,
+    "internal_call": "No",
+    "enter_year": 2025,
+    "status": "Abandoned"
+  },
+  {
+    "enter_month": "202507",
+    "enter_week": "202528",
+    "time_in_queue_seconds": 9,
+    "enter_date": "2025-07-09",
+    "calling_number": "003242771238",
+    "less_than_120s_waittime": 1,
+    "less_than_30s_waittime": 1,
+    "enter_datetime": "2025-07-09T12:44:47.697",
+    "calling_name": "",
+    "enter_weekday": "3.Wednesday",
+    "enter_time": "12:44:47",
+    "version": 5,
+    "status_detail": "Abandoned",
+    "call_id": "046abfa4-4ced-4dd2-ad6e-001835a93418",
+    "queue_name": "HELPDESKNORecord",
+    "enter_hour": 12,
+    "calling_forward": "",
+    "less_than_60s_waittime": 1,
+    "internal_call": "No",
+    "enter_year": 2025,
+    "status": "Abandoned"
+  }
+]

@@ -1,1 +1,39 @@
-[]
+
+[
+  {
+    "date": "2025-07-01",
+    "queuename": "HELPDESKNORecord",
+    "hour": 0,
+    "user_id": "28921613",
+    "idle": 60,
+    "loggedIn": 60,
+    "loggedOut": 0,
+    "user": "Alex 777",
+    "email": "skandyx23974@gmail.com",
+    "queue_id": "855c0405"
+  },
+  {
+    "date": "2025-07-01",
+    "queuename": "Musée d'orsay",
+    "hour": 0,
+    "user_id": "28921613",
+    "idle": 0,
+    "loggedIn": 0,
+    "loggedOut": 60,
+    "user": "Alex 777",
+    "email": "skandyx23974@gmail.com",
+    "queue_id": "c507a5d4"
+  },
+  {
+    "date": "2025-07-01",
+    "queuename": "HELPDESK",
+    "hour": 0,
+    "user_id": "28921613",
+    "idle": 0,
+    "loggedIn": 0,
+    "loggedOut": 60,
+    "user": "Alex 777",
+    "email": "skandyx23974@gmail.com",
+    "queue_id": "2c48ade0"
+  }
+]
