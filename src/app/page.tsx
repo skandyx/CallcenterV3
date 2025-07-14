@@ -175,7 +175,7 @@ export default function Dashboard() {
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
                 <TabsTrigger value="advanced-calls">Données d'appel avancées</TabsTrigger>
                 <TabsTrigger value="agent-availability">Disponibilité des agents</TabsTrigger>
-                <TabsTrigger value="agent-status">Statut des agents par file</TabsTrigger>
+                <TabsTrigger value="ivr-journey">Parcours IVR (avancé)</TabsTrigger>
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
                 <TabsTrigger value="call-distribution">Call Distribution by Country</TabsTrigger>
             </TabsList>
@@ -308,10 +308,10 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
-            <TabsContent value="agent-status">
+            <TabsContent value="ivr-journey">
               <Card>
                 <CardHeader>
-                  <CardTitle>Statut des agents par file d'attente</CardTitle>
+                  <CardTitle>Parcours IVR (avancé)</CardTitle>
                   <CardDescription>
                     Temps passé par les agents dans chaque statut pour chaque file d'attente (en minutes).
                   </CardDescription>
