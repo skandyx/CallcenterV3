@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,26 +36,35 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/data');
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const data = await response.json();
-        setCalls(data.calls || []);
-        setAdvancedCalls(data.advancedCalls || []);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setCalls([]);
-        setAdvancedCalls([]);
-      } finally {
-        setLoading(false);
+  const timeFormat: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  };
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch('/api/data');
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
       }
+      const data = await response.json();
+      setCalls(data.calls || []);
+      setAdvancedCalls(data.advancedCalls || []);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setCalls([]);
+      setAdvancedCalls([]);
+    } finally {
+      setLoading(false);
     }
-    fetchData();
+  }
+
+  useEffect(() => {
+    fetchData(); // Fetch data on initial load
+    const interval = setInterval(fetchData, 5000); // Refresh every 5 seconds
+    return () => clearInterval(interval); // Cleanup on component unmount
   }, []);
 
   const filteredCalls = selectedDate
@@ -191,7 +201,7 @@ export default function Dashboard() {
                                 return (
                                 <TableRow key={call.callId}>
                                     <TableCell>{callDate.toLocaleDateString()}</TableCell>
-                                    <TableCell>{callDate.toLocaleTimeString()}</TableCell>
+                                    <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>{call.callId.startsWith('c2') || call.callId.startsWith('c3') ? <div className="flex items-center gap-2"><PlusCircle className="h-4 w-4 text-red-500" /><span>003228829609</span></div> : '003228829631'}</TableCell>
                                     <TableCell>{call.queue}</TableCell>
                                     <TableCell>{call.status === 'abandoned' ? 'N/A' : (call.callId.startsWith('c2') || call.callId.startsWith('c3') ? 'Luffy Monkey D' : 'Alex 777')}</TableCell>
@@ -234,7 +244,7 @@ export default function Dashboard() {
                         <TableBody>
                             {filteredAdvancedCalls.map((call) => (
                                 <TableRow key={`${call.callId}-${call.timestamp}`}>
-                                    <TableCell>{new Date(call.timestamp).toLocaleString()}</TableCell>
+                                    <TableCell>{new Date(call.timestamp).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
                                     <TableCell>003228829609</TableCell>
                                     <TableCell>N/A</TableCell>
                                     <TableCell>{call.to}</TableCell>
@@ -289,7 +299,7 @@ export default function Dashboard() {
                             {filteredAdvancedCalls.map(call => (
                                 <TableRow key={`${call.callId}-${call.timestamp}`}>
                                     <TableCell>{new Date(call.timestamp).toLocaleDateString()}</TableCell>
-                                    <TableCell>{new Date(call.timestamp).toLocaleTimeString()}</TableCell>
+                                    <TableCell>{new Date(call.timestamp).toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>003228829631</TableCell>
                                     <TableCell>Agent Smith</TableCell>
                                     <TableCell>{call.to}</TableCell>

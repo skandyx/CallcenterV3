@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -5,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,11 +24,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Copy, Trash2, Loader2 } from "lucide-react";
+import { Settings, Copy, Trash2, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
 import { Switch } from "./ui/switch";
 import { useStreamStatus } from "@/context/stream-status-provider";
+import type { StreamStatus } from "@/context/stream-status-provider";
 import { ScrollArea } from "./ui/scroll-area";
 
 const streamEndpoints = [
@@ -40,14 +43,30 @@ export function SettingsDialog() {
   const [baseUrl, setBaseUrl] = useState("");
   const { toast } = useToast();
   const { status, setStatus } = useStreamStatus();
+
+  // Local state for toggles before saving
+  const [isStreamingEnabled, setIsStreamingEnabled] = useState(status !== 'disabled');
   const [isAiEnabled, setIsAiEnabled] = useState(false);
+  
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
 
   useEffect(() => {
     setBaseUrl(window.location.origin);
-  }, []);
+    // Load saved settings from localStorage
+    const savedStreaming = localStorage.getItem('streamingEnabled');
+    const savedAi = localStorage.getItem('aiEnabled');
+
+    const streamingEnabled = savedStreaming ? JSON.parse(savedStreaming) : false;
+    const aiEnabled = savedAi ? JSON.parse(savedAi) : false;
+
+    setIsStreamingEnabled(streamingEnabled);
+    setStatus(streamingEnabled ? 'idle' : 'disabled');
+    setIsAiEnabled(aiEnabled);
+
+  }, [setStatus]);
   
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -68,7 +87,6 @@ export function SettingsDialog() {
             title: "Success!",
             description: "All application data has been deleted.",
         });
-        // Optionally, refresh the page or state
         window.location.reload();
     } catch (error) {
         console.error(error);
@@ -83,8 +101,22 @@ export function SettingsDialog() {
     }
   }
 
-  const handleStreamingToggle = (checked: boolean) => {
-    setStatus(checked ? 'idle' : 'disabled');
+  const handleSaveSettings = () => {
+    setIsSaving(true);
+    // Apply settings
+    setStatus(isStreamingEnabled ? 'idle' : 'disabled');
+    
+    // Persist settings to localStorage
+    localStorage.setItem('streamingEnabled', JSON.stringify(isStreamingEnabled));
+    localStorage.setItem('aiEnabled', JSON.stringify(isAiEnabled));
+
+    setTimeout(() => {
+        toast({
+            title: "Settings Saved",
+            description: "Your new settings have been applied.",
+        });
+        setIsSaving(false);
+    }, 500);
   };
 
 
@@ -118,8 +150,8 @@ export function SettingsDialog() {
                             </div>
                             <Switch
                                 id="data-streaming"
-                                checked={status !== 'disabled'}
-                                onCheckedChange={handleStreamingToggle}
+                                checked={isStreamingEnabled}
+                                onCheckedChange={setIsStreamingEnabled}
                             />
                         </div>
                          <div className="flex items-center justify-between rounded-lg border p-4">
@@ -199,6 +231,21 @@ export function SettingsDialog() {
                 </div>
             </div>
           </ScrollArea>
+           <DialogFooter>
+            <Button variant="outline" onClick={handleSaveSettings} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

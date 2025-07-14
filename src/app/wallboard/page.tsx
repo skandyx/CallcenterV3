@@ -21,6 +21,13 @@ export default async function WallboardPage() {
   const callsWaiting = calls.filter(c => c.status === 'missed').length; // Simplified logic
   const longestWaitTime = calls.filter(c => c.status === 'abandoned').reduce((max, call) => call.duration > max ? call.duration : max, 0);
 
+  const timeFormat: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  };
+
 
   const getStatusVariant = (status: string) => {
     switch (status.toLowerCase()) {
@@ -85,7 +92,7 @@ export default async function WallboardPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{agent.queue}</TableCell>
-                    <TableCell>{new Date(agent.timestamp).toLocaleTimeString()}</TableCell>
+                    <TableCell>{new Date(agent.timestamp).toLocaleTimeString([], timeFormat)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
