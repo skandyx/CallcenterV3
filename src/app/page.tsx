@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import type {
-  CallData, AdvancedCallData
+  CallData, AdvancedCallData, AgentStatusData, ProfileAvailabilityData
 } from "@/types";
 import StatCard from "@/components/stat-card";
 import {
@@ -32,6 +32,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function Dashboard() {
   const [calls, setCalls] = useState<CallData[]>([]);
   const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>([]);
+  const [agentStatus, setAgentStatus] = useState<AgentStatusData[]>([]);
+  const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [loading, setLoading] = useState(true);
 
@@ -51,10 +53,14 @@ export default function Dashboard() {
       const data = await response.json();
       setCalls(data.calls || []);
       setAdvancedCalls(data.advancedCalls || []);
+      setAgentStatus(data.agentStatus || []);
+      setProfileAvailability(data.profileAvailability || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       setCalls([]);
       setAdvancedCalls([]);
+      setAgentStatus([]);
+      setProfileAvailability([]);
     } finally {
       setLoading(false);
     }
@@ -66,13 +72,15 @@ export default function Dashboard() {
     return () => clearInterval(interval); // Cleanup on component unmount
   }, []);
 
-  const filteredCalls = selectedDate
-    ? calls.filter(call => new Date(call.enter_datetime).toDateString() === selectedDate.toDateString())
-    : calls;
+  const filterByDate = (items: any[], dateKey: string) => {
+    if (!selectedDate) return items;
+    return items.filter(item => new Date(item[dateKey]).toDateString() === selectedDate.toDateString());
+  }
 
-  const filteredAdvancedCalls = selectedDate
-    ? advancedCalls.filter(call => new Date(call.timestamp).toDateString() === selectedDate.toDateString())
-    : advancedCalls;
+  const filteredCalls = filterByDate(calls, 'enter_datetime');
+  const filteredAdvancedCalls = filterByDate(advancedCalls, 'timestamp');
+  const filteredAgentStatus = filterByDate(agentStatus, 'date');
+  const filteredProfileAvailability = filterByDate(profileAvailability, 'date');
 
   const totalCalls = filteredCalls.length;
   const answeredCalls = filteredCalls.filter((c) => c.status !== "Abandoned").length;
@@ -81,6 +89,18 @@ export default function Dashboard() {
   const serviceLevel10s = (filteredCalls.filter(c => c.time_in_queue_seconds <= 10).length / totalCalls) * 100 || 0;
   const serviceLevel30s = (filteredCalls.filter(c => c.time_in_queue_seconds <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
+  
+  const statusAnalysis = filteredCalls.reduce((acc, call) => {
+    const status = call.status_detail || call.status;
+    if (!acc[status]) {
+      acc[status] = { count: 0, totalWait: 0, totalTalk: 0 };
+    }
+    acc[status].count++;
+    acc[status].totalWait += call.time_in_queue_seconds;
+    acc[status].totalTalk += call.talk_time_seconds || 0;
+    return acc;
+  }, {} as Record<string, { count: number, totalWait: number, totalTalk: number }>);
+
 
   const countryData = [
     { name: 'Belgium', value: 110, color: 'bg-indigo-400' },
@@ -150,12 +170,12 @@ export default function Dashboard() {
           />
         </div>
         
-        <Tabs defaultValue="advanced-calls">
+        <Tabs defaultValue="simplified-calls">
             <TabsList className="grid w-full grid-cols-6 bg-muted">
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
                 <TabsTrigger value="advanced-calls">Données d'appel avancées</TabsTrigger>
                 <TabsTrigger value="agent-availability">Disponibilité des agents</TabsTrigger>
-                <TabsTrigger value="ivr-path">Parcours IVR (avancé)</TabsTrigger>
+                <TabsTrigger value="agent-status">Statut des agents par file</TabsTrigger>
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
                 <TabsTrigger value="call-distribution">Call Distribution by Country</TabsTrigger>
             </TabsList>
@@ -187,10 +207,10 @@ export default function Dashboard() {
                                 <TableHead>Time</TableHead>
                                 <TableHead>Caller</TableHead>
                                 <TableHead>Queue</TableHead>
-                                <TableHead>Agent</TableHead>
                                 <TableHead>Wait Time</TableHead>
                                 <TableHead>Talk Time</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Status Detail</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -202,7 +222,6 @@ export default function Dashboard() {
                                     <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>{call.calling_number}</TableCell>
                                     <TableCell>{call.queue_name}</TableCell>
-                                    <TableCell>{call.agent_id || 'N/A'}</TableCell>
                                     <TableCell>{call.time_in_queue_seconds}s</TableCell>
                                     <TableCell>{call.talk_time_seconds || 0}s</TableCell>
                                     <TableCell>
@@ -210,6 +229,7 @@ export default function Dashboard() {
                                             {call.status}
                                         </Badge>
                                     </TableCell>
+                                    <TableCell>{call.status_detail}</TableCell>
                                 </TableRow>
                             )})}
                         </TableBody>
@@ -221,7 +241,7 @@ export default function Dashboard() {
                  <Card>
                     <CardHeader>
                         <CardTitle>Advanced Call Log</CardTitle>
-                        <p className="text-muted-foreground">Journaux d'événements détaillés pour chaque appel, y compris les transferts et les tentatives. Idéal pour une analyse forensique.</p>
+                        <CardDescription>Journaux d'événements détaillés pour chaque appel, y compris les transferts et les tentatives. Idéal pour une analyse forensique.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Input placeholder="Filter across all columns..." className="max-w-sm mb-4" />
@@ -229,28 +249,22 @@ export default function Dashboard() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Date & Time</TableHead>
-                                <TableHead>Caller</TableHead>
-                                <TableHead>IVR</TableHead>
-                                <TableHead>Queue</TableHead>
-                                <TableHead>Agent</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Status Detail</TableHead>
-                                <TableHead>Talk Time</TableHead>
                                 <TableHead>Call ID</TableHead>
+                                <TableHead>Event</TableHead>
+                                <TableHead>From</TableHead>
+                                <TableHead>To</TableHead>
+                                <TableHead>Duration</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredAdvancedCalls.map((call) => (
                                 <TableRow key={`${call.callId}-${call.timestamp}`}>
                                     <TableCell>{new Date(call.timestamp).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
-                                    <TableCell>003228829609</TableCell>
-                                    <TableCell>N/A</TableCell>
-                                    <TableCell>{call.to}</TableCell>
-                                    <TableCell>{call.from === 'Sales' ? 'Luffy Monkey D' : 'N/A'}</TableCell>
-                                    <TableCell>Direct call</TableCell>
-                                    <TableCell>Outgoing</TableCell>
-                                    <TableCell>0s</TableCell>
                                     <TableCell>{call.callId}</TableCell>
+                                    <TableCell>{call.event}</TableCell>
+                                    <TableCell>{call.from || 'N/A'}</TableCell>
+                                    <TableCell>{call.to || 'N/A'}</TableCell>
+                                    <TableCell>{call.duration ? `${call.duration}s` : 'N/A'}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -258,11 +272,113 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
             </TabsContent>
+             <TabsContent value="agent-availability">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Disponibilité des agents</CardTitle>
+                  <CardDescription>
+                    Vue détaillée de la disponibilité des agents (en minutes) par heure pour la journée sélectionnée.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Hour</TableHead>
+                        <TableHead>Available (min)</TableHead>
+                        <TableHead>Lunch (min)</TableHead>
+                        <TableHead>Meeting (min)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProfileAvailability.map((profile) => (
+                        <TableRow key={`${profile.user_id}-${profile.hour}`}>
+                          <TableCell>{profile.user}</TableCell>
+                          <TableCell>{profile.email}</TableCell>
+                          <TableCell>{profile.hour}:00</TableCell>
+                          <TableCell>{profile.Available}</TableCell>
+                          <TableCell>{profile.Lunch}</TableCell>
+                          <TableCell>{profile.Meeting}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="agent-status">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Statut des agents par file d'attente</CardTitle>
+                  <CardDescription>
+                    Temps passé par les agents dans chaque statut pour chaque file d'attente (en minutes).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>File d'attente</TableHead>
+                        <TableHead>Connecté (min)</TableHead>
+                        <TableHead>En pause (min)</TableHead>
+                        <TableHead>Déconnecté (min)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAgentStatus.map((status) => (
+                        <TableRow key={`${status.user_id}-${status.queue_id}`}>
+                          <TableCell>{status.user}</TableCell>
+                          <TableCell>{status.queuename}</TableCell>
+                          <TableCell>{status.loggedIn}</TableCell>
+                          <TableCell>{status.idle}</TableCell>
+                          <TableCell>{status.loggedOut}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="status-analysis">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analyse par statut</CardTitle>
+                  <CardDescription>
+                    Répartition des appels par statut de terminaison, avec statistiques associées.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Statut</TableHead>
+                        <TableHead>Nombre d'appels</TableHead>
+                        <TableHead>Temps d'attente moyen</TableHead>
+                        <TableHead>Temps de conversation moyen</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(statusAnalysis).map(([status, data]) => (
+                        <TableRow key={status}>
+                          <TableCell>{status}</TableCell>
+                          <TableCell>{data.count}</TableCell>
+                          <TableCell>{(data.totalWait / data.count).toFixed(1)}s</TableCell>
+                          <TableCell>{(data.totalTalk / data.count).toFixed(1)}s</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
             <TabsContent value="call-distribution">
               <Card>
                 <CardHeader>
                   <CardTitle>Call Distribution by Country</CardTitle>
-                  <p className="text-muted-foreground">Geographic call distribution. Click a country to see agent breakdown.</p>
+                  <CardDescription>Geographic call distribution. Click a country to see agent breakdown.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">
                   <div className="w-full h-48 flex rounded-lg overflow-hidden">
@@ -286,24 +402,20 @@ export default function Dashboard() {
                             <TableHead>Date</TableHead>
                             <TableHead>Time</TableHead>
                             <TableHead>Caller Number</TableHead>
-                            <TableHead>Agent</TableHead>
                             <TableHead>Queue</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Status Detail</TableHead>
                             <TableHead>Duration</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredAdvancedCalls.map(call => (
-                                <TableRow key={`${call.callId}-${call.timestamp}`}>
-                                    <TableCell>{new Date(call.timestamp).toLocaleDateString()}</TableCell>
-                                    <TableCell>{new Date(call.timestamp).toLocaleTimeString([], timeFormat)}</TableCell>
-                                    <TableCell>003228829631</TableCell>
-                                    <TableCell>Agent Smith</TableCell>
-                                    <TableCell>{call.to}</TableCell>
-                                    <TableCell>Direct call</TableCell>
-                                    <TableCell>Outgoing</TableCell>
-                                    <TableCell>{call.duration || 0}s</TableCell>
+                            {filteredCalls.map(call => (
+                                <TableRow key={call.call_id}>
+                                    <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
+                                    <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
+                                    <TableCell>{call.calling_number}</TableCell>
+                                    <TableCell>{call.queue_name}</TableCell>
+                                    <TableCell>{call.status}</TableCell>
+                                    <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
