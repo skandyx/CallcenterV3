@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
 import { Switch } from "./ui/switch";
 import { useStreamStatus } from "@/context/stream-status-provider";
+import { ScrollArea } from "./ui/scroll-area";
 
 const streamEndpoints = [
     { name: "Basic Call Data", path: "/api/stream" },
@@ -103,101 +104,101 @@ export function SettingsDialog() {
               Manage application settings and configurations.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-6 py-4">
-              <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Toggles</h3>
-                  <div className="space-y-4">
-                      <div className="flex items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                              <Label htmlFor="data-streaming" className="text-base">Data Streaming</Label>
-                              <p className="text-sm text-muted-foreground">
-                                  Enable or disable real-time data streaming.
-                              </p>
-                          </div>
-                          <Switch
-                              id="data-streaming"
-                              checked={status !== 'disabled'}
-                              onCheckedChange={handleStreamingToggle}
-                          />
-                      </div>
-                       <div className="flex items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                              <Label htmlFor="ai-analysis" className="text-base">AI Analysis</Label>
-                              <p className="text-sm text-muted-foreground">
-                                  Enable or disable GenAI-powered analysis features.
-                              </p>
-                          </div>
-                          <Switch
-                              id="ai-analysis"
-                              checked={isAiEnabled}
-                              onCheckedChange={setIsAiEnabled}
-                          />
-                      </div>
-                  </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                  <h3 className="text-lg font-medium mb-1">Data Stream Configuration</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                      Configure your PBX system to send POST requests to these endpoints.
-                  </p>
-                  <div className="space-y-4">
-                      {streamEndpoints.map(endpoint => {
-                          const fullUrl = `${baseUrl}${endpoint.path}`;
-                          return (
-                              <div key={endpoint.path} className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor={endpoint.path} className="text-right">
-                                  {endpoint.name}
-                                  </Label>
-                                  <div className="col-span-3 relative">
-                                      <Input
-                                          id={endpoint.path}
-                                          value={fullUrl}
-                                          readOnly
-                                          className="pr-10"
-                                      />
-                                      <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                                          onClick={() => handleCopy(fullUrl)}
-                                      >
-                                          <Copy className="h-4 w-4" />
-                                          <span className="sr-only">Copy URL</span>
-                                      </Button>
-                                  </div>
-                              </div>
-                          );
-                      })}
-                  </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Data Management</h3>
-                 <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="delete-data" className="text-base text-destructive">Delete All Data</Label>
-                        <p className="text-sm text-muted-foreground">
-                            This will permanently delete all call and agent data. This action cannot be undone.
-                        </p>
+          <ScrollArea className="max-h-[70vh] pr-6">
+            <div className="space-y-6 py-4">
+                <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Toggles</h3>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="data-streaming" className="text-base">Data Streaming</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Enable or disable real-time data streaming.
+                                </p>
+                            </div>
+                            <Switch
+                                id="data-streaming"
+                                checked={status !== 'disabled'}
+                                onCheckedChange={handleStreamingToggle}
+                            />
+                        </div>
+                         <div className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="ai-analysis" className="text-base">AI Analysis</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    Enable or disable GenAI-powered analysis features.
+                                </p>
+                            </div>
+                            <Switch
+                                id="ai-analysis"
+                                checked={isAiEnabled}
+                                onCheckedChange={setIsAiEnabled}
+                            />
+                        </div>
                     </div>
-                    <Button
-                        id="delete-data"
-                        variant="destructive"
-                        onClick={() => setIsAlertOpen(true)}
-                    >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Data
-                    </Button>
                 </div>
-              </div>
-          </div>
 
+                <Separator />
+
+                <div>
+                    <h3 className="text-lg font-medium mb-1">Data Stream Configuration</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        Configure your PBX system to send POST requests to these endpoints.
+                    </p>
+                    <div className="space-y-4">
+                        {streamEndpoints.map(endpoint => {
+                            const fullUrl = `${baseUrl}${endpoint.path}`;
+                            return (
+                                <div key={endpoint.path} className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor={endpoint.path} className="text-right">
+                                    {endpoint.name}
+                                    </Label>
+                                    <div className="col-span-3 relative">
+                                        <Input
+                                            id={endpoint.path}
+                                            value={fullUrl}
+                                            readOnly
+                                            className="pr-10"
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                            onClick={() => handleCopy(fullUrl)}
+                                        >
+                                            <Copy className="h-4 w-4" />
+                                            <span className="sr-only">Copy URL</span>
+                                        </Button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Data Management</h3>
+                   <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
+                      <div className="space-y-0.5">
+                          <Label htmlFor="delete-data" className="text-base text-destructive">Delete All Data</Label>
+                          <p className="text-sm text-muted-foreground">
+                              This will permanently delete all call and agent data. This action cannot be undone.
+                          </p>
+                      </div>
+                      <Button
+                          id="delete-data"
+                          variant="destructive"
+                          onClick={() => setIsAlertOpen(true)}
+                      >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Data
+                      </Button>
+                  </div>
+                </div>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
