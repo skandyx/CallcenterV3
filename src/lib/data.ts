@@ -8,12 +8,19 @@ const dataDir = path.join(process.cwd(), 'Datas-json');
 async function readFile<T>(filename: string): Promise<T[]> {
   const filePath = path.join(dataDir, filename);
   try {
+    // Ensure directory exists
+    await fs.mkdir(dataDir, { recursive: true });
     await fs.access(filePath);
     const fileContent = await fs.readFile(filePath, 'utf-8');
+    // Handle empty file case
+    if (fileContent.trim() === '') {
+        return [];
+    }
     return JSON.parse(fileContent) as T[];
   } catch (error) {
-    // If file does not exist, return empty array
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      // If file does not exist, create it with an empty array
+      await fs.writeFile(filePath, '[]', 'utf-8');
       return [];
     }
     throw error;
@@ -22,7 +29,7 @@ async function readFile<T>(filename: string): Promise<T[]> {
 
 async function appendFile<T>(filename: string, data: T): Promise<void> {
   const filePath = path.join(dataDir, filename);
-  const currentData = await readFile<T>(filePath);
+  const currentData = await readFile<T>(filename); // Pass filename, not full path
   currentData.push(data);
   await fs.writeFile(filePath, JSON.stringify(currentData, null, 2), 'utf-8');
 }

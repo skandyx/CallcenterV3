@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "./ui/separator";
+import { Switch } from "./ui/switch";
 
 const streamEndpoints = [
     { name: "Basic Call Data", path: "/api/stream" },
@@ -25,9 +27,11 @@ const streamEndpoints = [
 export function SettingsDialog() {
   const [baseUrl, setBaseUrl] = useState("");
   const { toast } = useToast();
+  const [isDataStreaming, setIsDataStreaming] = useState(true);
+  const [isAiEnabled, setIsAiEnabled] = useState(true);
+
 
   useEffect(() => {
-    // This ensures window is defined, preventing SSR issues.
     setBaseUrl(window.location.origin);
   }, []);
   
@@ -49,40 +53,84 @@ export function SettingsDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
-          <DialogTitle>Data Stream Configuration</DialogTitle>
+          <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Configure your PBX system to send POST requests to these endpoints.
+            Manage application settings and configurations.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-            {streamEndpoints.map(endpoint => {
-                const fullUrl = `${baseUrl}${endpoint.path}`;
-                return (
-                    <div key={endpoint.path} className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor={endpoint.path} className="text-right">
-                           {endpoint.name}
-                        </Label>
-                        <div className="col-span-3 relative">
-                            <Input
-                                id={endpoint.path}
-                                value={fullUrl}
-                                readOnly
-                                className="pr-10"
-                            />
-                             <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                                onClick={() => handleCopy(fullUrl)}
-                            >
-                                <Copy className="h-4 w-4" />
-                                <span className="sr-only">Copy URL</span>
-                            </Button>
+        
+        <div className="space-y-6 py-4">
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium">Toggles</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="data-streaming" className="text-base">Data Streaming</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Enable or disable real-time data streaming.
+                            </p>
                         </div>
+                        <Switch
+                            id="data-streaming"
+                            checked={isDataStreaming}
+                            onCheckedChange={setIsDataStreaming}
+                        />
                     </div>
-                );
-            })}
+                     <div className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="ai-analysis" className="text-base">AI Analysis</Label>
+                            <p className="text-sm text-muted-foreground">
+                                Enable or disable GenAI-powered analysis features.
+                            </p>
+                        </div>
+                        <Switch
+                            id="ai-analysis"
+                            checked={isAiEnabled}
+                            onCheckedChange={setIsAiEnabled}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <Separator />
+
+            <div>
+                <h3 className="text-lg font-medium mb-1">Data Stream Configuration</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                    Configure your PBX system to send POST requests to these endpoints.
+                </p>
+                <div className="space-y-4">
+                    {streamEndpoints.map(endpoint => {
+                        const fullUrl = `${baseUrl}${endpoint.path}`;
+                        return (
+                            <div key={endpoint.path} className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor={endpoint.path} className="text-right">
+                                {endpoint.name}
+                                </Label>
+                                <div className="col-span-3 relative">
+                                    <Input
+                                        id={endpoint.path}
+                                        value={fullUrl}
+                                        readOnly
+                                        className="pr-10"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                        onClick={() => handleCopy(fullUrl)}
+                                    >
+                                        <Copy className="h-4 w-4" />
+                                        <span className="sr-only">Copy URL</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
+
       </DialogContent>
     </Dialog>
   );

@@ -6,8 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Bar,
-  BarChart,
+  Treemap,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -16,11 +15,12 @@ import {
   Tooltip,
   Legend
 } from "recharts";
-import { readCalls, CallData } from "@/lib/data";
+import { readCalls } from "@/lib/data";
 import StatCard from "@/components/stat-card";
 import { Activity, PhoneOff, Phone, Clock } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { TreemapContent } from "@/components/treemap-content";
 
 export default async function Dashboard() {
   const calls = await readCalls();
@@ -43,7 +43,7 @@ export default async function Dashboard() {
 
   const chartDataByQueue = Object.entries(callsByQueue).map(([name, value]) => ({
     name,
-    calls: value,
+    size: value,
   }));
 
   const callsByHour = calls.reduce((acc, call) => {
@@ -121,18 +121,30 @@ export default async function Dashboard() {
                 Distribution of calls across different queues.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <BarChart accessibilityLayer data={chartDataByQueue} layout="vertical">
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} stroke="hsl(var(--foreground))" fontSize={12} />
-                  <Tooltip
+            <CardContent className="pl-2">
+              <ResponsiveContainer width="100%" height={300}>
+                <Treemap
+                  data={chartDataByQueue}
+                  dataKey="size"
+                  ratio={4 / 3}
+                  stroke="hsl(var(--card))"
+                  fill="hsl(var(--primary))"
+                  content={<TreemapContent />}
+                >
+                   <Tooltip
                     cursor={false}
-                    content={<ChartTooltipContent hideLabel />}
+                    content={<ChartTooltipContent 
+                      labelKey="name"
+                      formatter={(value, name, props) => (
+                        <div className="text-sm">
+                          <div className="font-medium">{props.payload.name}</div>
+                          <div>Calls: {props.payload.size}</div>
+                        </div>
+                      )}
+                    />}
                   />
-                  <Bar dataKey="calls" fill="hsl(var(--primary))" radius={4} />
-                </BarChart>
-              </ChartContainer>
+                </Treemap>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
