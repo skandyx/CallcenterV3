@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +23,8 @@ import {
   PlusCircle
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 export default async function Dashboard() {
   const calls = await readCalls();
@@ -96,6 +98,64 @@ export default async function Dashboard() {
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
                 <TabsTrigger value="call-distribution">Call Distribution by Country</TabsTrigger>
             </TabsList>
+            <TabsContent value="simplified-calls">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Call Log</CardTitle>
+                        <CardDescription>Vue détaillée des appels individuels pour la journée en cours.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center gap-4 mb-4">
+                            <Input placeholder="Filter across all columns..." className="max-w-sm" />
+                             <Select>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="All Statuses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Statuses</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="abandoned">Abandoned</SelectItem>
+                                    <SelectItem value="missed">Missed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Time</TableHead>
+                                <TableHead>Caller</TableHead>
+                                <TableHead>Queue</TableHead>
+                                <TableHead>Agent</TableHead>
+                                <TableHead>Wait Time</TableHead>
+                                <TableHead>Talk Time</TableHead>
+                                <TableHead>Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {calls.map((call) => {
+                                const callDate = new Date(call.timestamp);
+                                return (
+                                <TableRow key={call.callId}>
+                                    <TableCell>{callDate.toLocaleDateString()}</TableCell>
+                                    <TableCell>{callDate.toLocaleTimeString()}</TableCell>
+                                    <TableCell>{call.callId.startsWith('c2') || call.callId.startsWith('c3') ? <div className="flex items-center gap-2"><PlusCircle className="h-4 w-4 text-red-500" /><span>003228829609</span></div> : '003228829631'}</TableCell>
+                                    <TableCell>{call.queue}</TableCell>
+                                    <TableCell>{call.status === 'abandoned' ? 'N/A' : (call.callId.startsWith('c2') || call.callId.startsWith('c3') ? 'Luffy Monkey D' : 'Alex 777')}</TableCell>
+                                    <TableCell>{call.status === 'abandoned' ? '2s' : '0s'}</TableCell>
+                                    <TableCell>{call.duration}s</TableCell>
+                                    <TableCell>
+                                        <Badge variant={call.status === 'abandoned' ? 'destructive' : 'outline'} className="capitalize">
+                                            {call.status === 'completed' ? 'Direct call' : call.status}
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                            )})}
+                        </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
             <TabsContent value="advanced-calls">
                  <Card>
                     <CardHeader>
