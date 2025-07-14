@@ -19,7 +19,7 @@ import { readCalls } from "@/lib/data";
 import StatCard from "@/components/stat-card";
 import { Activity, PhoneOff, Phone, Clock } from "lucide-react";
 import PageHeader from "@/components/page-header";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { TreemapContent } from "@/components/treemap-content";
 
 export default async function Dashboard() {
@@ -44,6 +44,7 @@ export default async function Dashboard() {
   const chartDataByQueue = Object.entries(callsByQueue).map(([name, value]) => ({
     name,
     size: value,
+    children: [{ name, value }], // Recharts Treemap expects children
   }));
 
   const callsByHour = calls.reduce((acc, call) => {
@@ -129,19 +130,18 @@ export default async function Dashboard() {
                   ratio={4 / 3}
                   stroke="hsl(var(--card))"
                   fill="hsl(var(--primary))"
+                  isAnimationActive={false}
                   content={<TreemapContent />}
                 >
                    <Tooltip
-                    cursor={false}
-                    content={<ChartTooltipContent 
-                      labelKey="name"
-                      formatter={(value, name, props) => (
-                        <div className="text-sm">
-                          <div className="font-medium">{props.payload.name}</div>
-                          <div>Calls: {props.payload.size}</div>
-                        </div>
-                      )}
-                    />}
+                      labelFormatter={(name) => name}
+                      formatter={(value, name) => [value, 'Calls']}
+                      cursor={{ fill: 'hsl(var(--muted))' }}
+                      contentStyle={{
+                          background: 'hsl(var(--background))',
+                          borderColor: 'hsl(var(--border))',
+                          borderRadius: 'var(--radius)',
+                      }}
                   />
                 </Treemap>
               </ResponsiveContainer>
