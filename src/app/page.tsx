@@ -19,7 +19,8 @@ import {
   Phone,
   Clock,
   Zap,
-  Percent
+  Percent,
+  PlusCircle
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 
@@ -35,6 +36,13 @@ export default async function Dashboard() {
   const serviceLevel10s = (calls.filter(c => c.duration <= 10).length / totalCalls) * 100 || 0;
   const serviceLevel30s = (calls.filter(c => c.duration <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
+
+  const countryData = [
+    { name: 'Belgium', value: 110, color: 'bg-indigo-400' },
+    { name: 'France', value: 14, color: 'bg-green-400' },
+    { name: 'Tunisia', value: 2, color: 'bg-yellow-400' },
+  ];
+  const totalCountryCalls = countryData.reduce((acc, country) => acc + country.value, 0);
 
 
   return (
@@ -86,7 +94,7 @@ export default async function Dashboard() {
                 <TabsTrigger value="agent-availability">Disponibilité des agents</TabsTrigger>
                 <TabsTrigger value="ivr-path">Parcours IVR (avancé)</TabsTrigger>
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
-                <TabsTrigger value="world-map">Carte du monde</TabsTrigger>
+                <TabsTrigger value="call-distribution">Call Distribution by Country</TabsTrigger>
             </TabsList>
             <TabsContent value="advanced-calls">
                  <Card>
@@ -128,6 +136,74 @@ export default async function Dashboard() {
                         </Table>
                     </CardContent>
                 </Card>
+            </TabsContent>
+            <TabsContent value="call-distribution">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Call Distribution by Country</CardTitle>
+                  <p className="text-muted-foreground">Geographic call distribution. Click a country to see agent breakdown.</p>
+                </CardHeader>
+                <CardContent className="space-y-8">
+                  <div className="w-full h-48 flex rounded-lg overflow-hidden">
+                    {countryData.map(country => (
+                      <div
+                        key={country.name}
+                        className={`${country.color} flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:opacity-90 transition-opacity`}
+                        style={{ width: `${(country.value / totalCountryCalls) * 100}%` }}
+                      >
+                       {country.name} ({country.value})
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4">Call Log</h3>
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Caller Number</TableHead>
+                            <TableHead>Agent</TableHead>
+                            <TableHead>Queue</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Status Detail</TableHead>
+                            <TableHead>Duration</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell>7/13/2025</TableCell>
+                                <TableCell>15:45:51</TableCell>
+                                <TableCell>003228829631</TableCell>
+                                <TableCell>Alex 777</TableCell>
+                                <TableCell>Direct call</TableCell>
+                                <TableCell><span className="underline">Direct call</span></TableCell>
+                                <TableCell>Missed - No answer</TableCell>
+                                <TableCell>0s</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell>7/13/2025</TableCell>
+                                <TableCell>15:45:51</TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <PlusCircle className="h-4 w-4 text-red-500" />
+                                        <span>003228829609</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>Luffy Monkey D</TableCell>
+                                <TableCell>Direct call</TableCell>
+                                <TableCell><span className="underline">Direct call</span></TableCell>
+                                <TableCell>Outgoing</TableCell>
+                                <TableCell>0s</TableCell>
+                            </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
         </Tabs>
 
