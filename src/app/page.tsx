@@ -1,6 +1,9 @@
-import {
-  readCalls, readAdvancedCalls
-} from "@/lib/data";
+'use client';
+
+import { useState, useEffect } from 'react';
+import type {
+  CallData, AdvancedCallData
+} from "@/types";
 import StatCard from "@/components/stat-card";
 import {
   Table,
@@ -26,17 +29,52 @@ import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-export default async function Dashboard() {
-  const calls = await readCalls();
-  const advancedCalls = await readAdvancedCalls();
 
-  const totalCalls = calls.length;
-  const completedCalls = calls.filter((c) => c.status === "completed");
+export default function Dashboard() {
+  const [calls, setCalls] = useState<CallData[]>([]);
+  const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  useEffect(() => {
+    // In a real app, you'd fetch this data from an API.
+    // For this demo, we'll use static mock data.
+    const allCalls = [
+      { "callId": "c1", "timestamp": "2023-10-27T10:00:00Z", "status": "completed", "duration": 180, "queue": "Sales" },
+      { "callId": "c2", "timestamp": "2023-10-27T10:05:00Z", "status": "abandoned", "duration": 30, "queue": "Support" },
+      { "callId": "c3", "timestamp": "2023-10-27T10:08:00Z", "status": "completed", "duration": 300, "queue": "Sales" },
+      { "callId": "c4", "timestamp": "2023-10-27T10:15:00Z", "status": "missed", "duration": 0, "queue": "Support" },
+      { "callId": "c5", "timestamp": "2023-10-27T11:20:00Z", "status": "completed", "duration": 120, "queue": "Billing" },
+      { "callId": "c6", "timestamp": "2023-10-27T11:22:00Z", "status": "completed", "duration": 240, "queue": "Sales" },
+      { "callId": "c7", "timestamp": "2023-10-27T12:30:00Z", "status": "abandoned", "duration": 45, "queue": "Support" },
+      { "callId": "c8", "timestamp": "2025-07-14T10:00:00Z", "status": "completed", "duration": 180, "queue": "Sales" }
+    ];
+    const allAdvancedCalls = [
+        { "callId": "c1", "timestamp": "2023-10-27T10:01:00Z", "event": "queue_entry", "to": "Sales" },
+        { "callId": "c1", "timestamp": "2023-10-27T10:01:30Z", "event": "agent_pickup", "from": "Sales", "to": "agent_007" },
+        { "callId": "c2", "timestamp": "2023-10-27T10:05:00Z", "event": "queue_entry", "to": "Support" },
+        { "callId": "c3", "timestamp": "2023-10-27T10:08:00Z", "event": "queue_entry", "to": "Sales" },
+        { "callId": "c8", "timestamp": "2025-07-14T10:01:00Z", "event": "queue_entry", "to": "Sales" }
+    ];
+    setCalls(allCalls);
+    setAdvancedCalls(allAdvancedCalls);
+
+  }, []);
+
+  const filteredCalls = selectedDate
+    ? calls.filter(call => new Date(call.timestamp).toDateString() === selectedDate.toDateString())
+    : calls;
+
+  const filteredAdvancedCalls = selectedDate
+    ? advancedCalls.filter(call => new Date(call.timestamp).toDateString() === selectedDate.toDateString())
+    : advancedCalls;
+
+  const totalCalls = filteredCalls.length;
+  const completedCalls = filteredCalls.filter((c) => c.status === "completed");
   const answeredCalls = completedCalls.length;
-  const avgWaitTime = calls.reduce((acc, c) => acc + c.duration, 0) / totalCalls || 0;
+  const avgWaitTime = filteredCalls.reduce((acc, c) => acc + c.duration, 0) / totalCalls || 0;
   
-  const serviceLevel10s = (calls.filter(c => c.duration <= 10).length / totalCalls) * 100 || 0;
-  const serviceLevel30s = (calls.filter(c => c.duration <= 30).length / totalCalls) * 100 || 0;
+  const serviceLevel10s = (filteredCalls.filter(c => c.duration <= 10).length / totalCalls) * 100 || 0;
+  const serviceLevel30s = (filteredCalls.filter(c => c.duration <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
 
   const countryData = [
@@ -49,7 +87,7 @@ export default async function Dashboard() {
 
   return (
     <div className="flex flex-col">
-       <PageHeader title="Dashboard" />
+       <PageHeader title="Dashboard" selectedDate={selectedDate} onDateChange={setSelectedDate} />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <StatCard
@@ -70,14 +108,14 @@ export default async function Dashboard() {
             title="Service Level (<10s)"
             value={`${serviceLevel10s.toFixed(1)}%`}
             icon={<Zap className="h-4 w-4 text-muted-foreground" />}
-            description={`${calls.filter(c => c.duration <= 10).length}/${totalCalls} calls answered in time`}
+            description={`${filteredCalls.filter(c => c.duration <= 10).length}/${totalCalls} calls answered in time`}
             valueClassName="text-green-600"
           />
           <StatCard
             title="Service Level (<30s)"
             value={`${serviceLevel30s.toFixed(1)}%`}
             icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            description={`${calls.filter(c => c.duration <= 30).length}/${totalCalls} calls answered in time`}
+            description={`${filteredCalls.filter(c => c.duration <= 30).length}/${totalCalls} calls answered in time`}
             valueClassName="text-green-600"
           />
           <StatCard
@@ -133,7 +171,7 @@ export default async function Dashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {calls.map((call) => {
+                            {filteredCalls.map((call) => {
                                 const callDate = new Date(call.timestamp);
                                 return (
                                 <TableRow key={call.callId}>
@@ -179,7 +217,7 @@ export default async function Dashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {advancedCalls.map((call) => (
+                            {filteredAdvancedCalls.map((call) => (
                                 <TableRow key={`${call.callId}-${call.timestamp}`}>
                                     <TableCell>{new Date(call.timestamp).toLocaleString()}</TableCell>
                                     <TableCell>003228829609</TableCell>
