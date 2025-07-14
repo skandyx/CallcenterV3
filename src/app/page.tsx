@@ -286,31 +286,18 @@ export default function Dashboard() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow>
-                                <TableCell>7/13/2025</TableCell>
-                                <TableCell>15:45:51</TableCell>
-                                <TableCell>003228829631</TableCell>
-                                <TableCell>Alex 777</TableCell>
-                                <TableCell>Direct call</TableCell>
-                                <TableCell><span className="underline">Direct call</span></TableCell>
-                                <TableCell>Missed - No answer</TableCell>
-                                <TableCell>0s</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell>7/13/2025</TableCell>
-                                <TableCell>15:45:51</TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        <PlusCircle className="h-4 w-4 text-red-500" />
-                                        <span>003228829609</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>Luffy Monkey D</TableCell>
-                                <TableCell>Direct call</TableCell>
-                                <TableCell><span className="underline">Direct call</span></TableCell>
-                                <TableCell>Outgoing</TableCell>
-                                <TableCell>0s</TableCell>
-                            </TableRow>
+                            {filteredAdvancedCalls.map(call => (
+                                <TableRow key={`${call.callId}-${call.timestamp}`}>
+                                    <TableCell>{new Date(call.timestamp).toLocaleDateString()}</TableCell>
+                                    <TableCell>{new Date(call.timestamp).toLocaleTimeString()}</TableCell>
+                                    <TableCell>003228829631</TableCell>
+                                    <TableCell>Agent Smith</TableCell>
+                                    <TableCell>{call.to}</TableCell>
+                                    <TableCell>Direct call</TableCell>
+                                    <TableCell>Outgoing</TableCell>
+                                    <TableCell>{call.duration || 0}s</TableCell>
+                                </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                     </div>
