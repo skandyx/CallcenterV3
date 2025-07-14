@@ -40,7 +40,7 @@ export function SettingsDialog() {
   const [baseUrl, setBaseUrl] = useState("");
   const { toast } = useToast();
   const { status, setStatus } = useStreamStatus();
-  const [isAiEnabled, setIsAiEnabled] = useState(true);
+  const [isAiEnabled, setIsAiEnabled] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 

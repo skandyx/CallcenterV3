@@ -12,7 +12,7 @@ interface StreamStatusContextType {
 const StreamStatusContext = createContext<StreamStatusContextType | undefined>(undefined);
 
 export const StreamStatusProvider = ({ children }: { children: ReactNode }) => {
-  const [status, setStatus] = useState<StreamStatus>('idle');
+  const [status, setStatus] = useState<StreamStatus>('disabled');
 
   return (
     <StreamStatusContext.Provider value={{ status, setStatus }}>
