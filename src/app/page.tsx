@@ -259,8 +259,8 @@ export default function Dashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredAdvancedCalls.map((call) => (
-                                <TableRow key={`${call.call_id}`}>
+                            {filteredAdvancedCalls.map((call, index) => (
+                                <TableRow key={`${call.call_id}-${index}`}>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
                                     <TableCell>{call.call_id}</TableCell>
                                     <TableCell>{call.agent || 'N/A'}</TableCell>
@@ -324,6 +324,7 @@ export default function Dashboard() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Agent</TableHead>
+                        <TableHead>Email</TableHead>
                         <TableHead>File d'attente</TableHead>
                         <TableHead>Connecté (min)</TableHead>
                         <TableHead>En pause (min)</TableHead>
@@ -331,9 +332,10 @@ export default function Dashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredAgentStatus.map((status) => (
-                        <TableRow key={`${status.user_id}-${status.queue_id}`}>
+                      {filteredAgentStatus.map((status, index) => (
+                        <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
                           <TableCell>{status.user}</TableCell>
+                          <TableCell>{status.email}</TableCell>
                           <TableCell>{status.queuename}</TableCell>
                           <TableCell>{status.loggedIn}</TableCell>
                           <TableCell>{status.idle}</TableCell>
@@ -434,3 +436,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    

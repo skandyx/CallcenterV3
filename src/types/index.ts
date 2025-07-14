@@ -27,13 +27,14 @@ export interface AdvancedCallData {
   export interface AgentStatusData {
     user_id: string;
     user: string;
+    email: string;
     date: string;
     hour: number;
     loggedIn: number;
     loggedOut: number;
     idle: number;
     queuename: string;
-    queue_id: string; // Added from log
+    queue_id: string;
   }
   
   export interface ProfileAvailabilityData {
@@ -48,3 +49,5 @@ export interface AdvancedCallData {
     [key: string]: any; // for other dynamic keys like P1, P2...
   }
   
+
+    
