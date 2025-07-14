@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -78,7 +79,7 @@ export default function Dashboard() {
   }
 
   const filteredCalls = filterByDate(calls, 'enter_datetime');
-  const filteredAdvancedCalls = filterByDate(advancedCalls, 'timestamp');
+  const filteredAdvancedCalls = filterByDate(advancedCalls, 'enter_datetime');
   const filteredAgentStatus = filterByDate(agentStatus, 'date');
   const filteredProfileAvailability = filterByDate(profileAvailability, 'date');
 
@@ -250,21 +251,23 @@ export default function Dashboard() {
                             <TableRow>
                                 <TableHead>Date & Time</TableHead>
                                 <TableHead>Call ID</TableHead>
-                                <TableHead>Event</TableHead>
-                                <TableHead>From</TableHead>
-                                <TableHead>To</TableHead>
-                                <TableHead>Duration</TableHead>
+                                <TableHead>Agent</TableHead>
+                                <TableHead>Caller Number</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Status Detail</TableHead>
+                                <TableHead>Processing Time</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredAdvancedCalls.map((call) => (
-                                <TableRow key={`${call.callId}-${call.timestamp}`}>
-                                    <TableCell>{new Date(call.timestamp).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
-                                    <TableCell>{call.callId}</TableCell>
-                                    <TableCell>{call.event}</TableCell>
-                                    <TableCell>{call.from || 'N/A'}</TableCell>
-                                    <TableCell>{call.to || 'N/A'}</TableCell>
-                                    <TableCell>{call.duration ? `${call.duration}s` : 'N/A'}</TableCell>
+                                <TableRow key={`${call.call_id}`}>
+                                    <TableCell>{new Date(call.enter_datetime).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
+                                    <TableCell>{call.call_id}</TableCell>
+                                    <TableCell>{call.agent || 'N/A'}</TableCell>
+                                    <TableCell>{call.calling_number}</TableCell>
+                                    <TableCell>{call.status}</TableCell>
+                                    <TableCell>{call.status_detail}</TableCell>
+                                    <TableCell>{call.processing_time_seconds ? `${call.processing_time_seconds}s` : 'N/A'}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
