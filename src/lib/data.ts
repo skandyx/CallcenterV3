@@ -14,28 +14,32 @@ const dataFiles = [
 async function readFile<T>(filename: string): Promise<T[]> {
   const filePath = path.join(dataDir, filename);
   try {
-    // Ensure directory exists
     await fs.mkdir(dataDir, { recursive: true });
-    await fs.access(filePath);
     const fileContent = await fs.readFile(filePath, 'utf-8');
-    // Handle empty file case
     if (fileContent.trim() === '') {
         return [];
     }
     return JSON.parse(fileContent) as T[];
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      // If file does not exist, create it with an empty array
+      // If file does not exist, create it with an empty array and return the empty array.
       await fs.writeFile(filePath, '[]', 'utf-8');
       return [];
     }
+    // If there's a JSON parsing error (e.g., file is corrupted or not valid JSON),
+    // treat it as an empty array to prevent crashes.
+     if (error instanceof SyntaxError) {
+      console.warn(`Warning: Could not parse ${filename}. File might be corrupted. Treating as empty.`);
+      return [];
+    }
+    // For other errors, re-throw them.
     throw error;
   }
 }
 
-async function appendFile<T>(filename: string, data: T): Promise<void> {
+async function appendFile<T>(filename:string, data: T): Promise<void> {
   const filePath = path.join(dataDir, filename);
-  const currentData = await readFile<T>(filename); // Pass filename, not full path
+  const currentData = await readFile<T>(filename);
   currentData.push(data);
   await fs.writeFile(filePath, JSON.stringify(currentData, null, 2), 'utf-8');
 }
