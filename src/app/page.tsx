@@ -22,7 +22,6 @@ import {
   Clock,
   Zap,
   Percent,
-  PlusCircle
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,7 +67,7 @@ export default function Dashboard() {
   }, []);
 
   const filteredCalls = selectedDate
-    ? calls.filter(call => new Date(call.timestamp).toDateString() === selectedDate.toDateString())
+    ? calls.filter(call => new Date(call.enter_datetime).toDateString() === selectedDate.toDateString())
     : calls;
 
   const filteredAdvancedCalls = selectedDate
@@ -76,12 +75,11 @@ export default function Dashboard() {
     : advancedCalls;
 
   const totalCalls = filteredCalls.length;
-  const completedCalls = filteredCalls.filter((c) => c.status === "completed");
-  const answeredCalls = completedCalls.length;
-  const avgWaitTime = filteredCalls.reduce((acc, c) => acc + c.duration, 0) / totalCalls || 0;
+  const answeredCalls = filteredCalls.filter((c) => c.status !== "Abandoned").length;
+  const avgWaitTime = filteredCalls.reduce((acc, c) => acc + c.time_in_queue_seconds, 0) / totalCalls || 0;
   
-  const serviceLevel10s = (filteredCalls.filter(c => c.duration <= 10).length / totalCalls) * 100 || 0;
-  const serviceLevel30s = (filteredCalls.filter(c => c.duration <= 30).length / totalCalls) * 100 || 0;
+  const serviceLevel10s = (filteredCalls.filter(c => c.time_in_queue_seconds <= 10).length / totalCalls) * 100 || 0;
+  const serviceLevel30s = (filteredCalls.filter(c => c.time_in_queue_seconds <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
 
   const countryData = [
@@ -133,14 +131,14 @@ export default function Dashboard() {
             title="Service Level (<10s)"
             value={`${serviceLevel10s.toFixed(1)}%`}
             icon={<Zap className="h-4 w-4 text-muted-foreground" />}
-            description={`${filteredCalls.filter(c => c.duration <= 10).length}/${totalCalls} calls answered in time`}
+            description={`${filteredCalls.filter(c => c.time_in_queue_seconds <= 10).length}/${totalCalls} calls answered in time`}
             valueClassName="text-green-600"
           />
           <StatCard
             title="Service Level (<30s)"
             value={`${serviceLevel30s.toFixed(1)}%`}
             icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            description={`${filteredCalls.filter(c => c.duration <= 30).length}/${totalCalls} calls answered in time`}
+            description={`${filteredCalls.filter(c => c.time_in_queue_seconds <= 30).length}/${totalCalls} calls answered in time`}
             valueClassName="text-green-600"
           />
           <StatCard
@@ -197,19 +195,19 @@ export default function Dashboard() {
                         </TableHeader>
                         <TableBody>
                             {filteredCalls.map((call) => {
-                                const callDate = new Date(call.timestamp);
+                                const callDate = new Date(call.enter_datetime);
                                 return (
-                                <TableRow key={call.callId}>
+                                <TableRow key={call.call_id}>
                                     <TableCell>{callDate.toLocaleDateString()}</TableCell>
                                     <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
-                                    <TableCell>{call.callId.startsWith('c2') || call.callId.startsWith('c3') ? <div className="flex items-center gap-2"><PlusCircle className="h-4 w-4 text-red-500" /><span>003228829609</span></div> : '003228829631'}</TableCell>
-                                    <TableCell>{call.queue}</TableCell>
-                                    <TableCell>{call.status === 'abandoned' ? 'N/A' : (call.callId.startsWith('c2') || call.callId.startsWith('c3') ? 'Luffy Monkey D' : 'Alex 777')}</TableCell>
-                                    <TableCell>{call.status === 'abandoned' ? '2s' : '0s'}</TableCell>
-                                    <TableCell>{call.duration}s</TableCell>
+                                    <TableCell>{call.calling_number}</TableCell>
+                                    <TableCell>{call.queue_name}</TableCell>
+                                    <TableCell>{call.agent_id || 'N/A'}</TableCell>
+                                    <TableCell>{call.time_in_queue_seconds}s</TableCell>
+                                    <TableCell>{call.talk_time_seconds || 0}s</TableCell>
                                     <TableCell>
-                                        <Badge variant={call.status === 'abandoned' ? 'destructive' : 'outline'} className="capitalize">
-                                            {call.status === 'completed' ? 'Direct call' : call.status}
+                                        <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
+                                            {call.status}
                                         </Badge>
                                     </TableCell>
                                 </TableRow>
