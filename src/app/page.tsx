@@ -37,6 +37,8 @@ export default function Dashboard() {
   const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [loading, setLoading] = useState(true);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -102,13 +104,39 @@ export default function Dashboard() {
     return acc;
   }, {} as Record<string, { count: number, totalWait: number, totalTalk: number }>);
 
+  const getCountryFromNumber = (phoneNumber: string) => {
+    if (phoneNumber.startsWith('0032')) return 'Belgium';
+    if (phoneNumber.startsWith('0033')) return 'France';
+    if (phoneNumber.startsWith('00216')) return 'Tunisia';
+    return 'Unknown';
+  };
 
-  const countryData = [
-    { name: 'Belgium', value: 110, color: 'bg-indigo-400' },
-    { name: 'France', value: 14, color: 'bg-green-400' },
-    { name: 'Tunisia', value: 2, color: 'bg-yellow-400' },
-  ];
-  const totalCountryCalls = countryData.reduce((acc, country) => acc + country.value, 0);
+  const countryData = filteredCalls.reduce((acc, call) => {
+      const country = getCountryFromNumber(call.calling_number);
+      if (country !== 'Unknown') {
+          if (!acc[country]) {
+              acc[country] = { name: country, value: 0, color: '' };
+          }
+          acc[country].value++;
+      }
+      return acc;
+  }, {} as Record<string, { name: string; value: number, color: string }>);
+
+  const countryColors = ['bg-indigo-400', 'bg-green-400', 'bg-yellow-400', 'bg-red-400', 'bg-blue-400'];
+  const countryDataArray = Object.values(countryData).map((country, index) => ({
+      ...country,
+      color: countryColors[index % countryColors.length],
+  }));
+
+  const totalCountryCalls = countryDataArray.reduce((acc, country) => acc + country.value, 0);
+
+  const handleCountryClick = (countryName: string) => {
+    setSelectedCountry(prev => (prev === countryName ? null : countryName));
+  };
+
+  const distributionFilteredCalls = selectedCountry
+    ? filteredCalls.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry)
+    : filteredCalls;
 
 
   if (loading) {
@@ -387,11 +415,12 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="space-y-8">
                   <div className="w-full h-48 flex rounded-lg overflow-hidden">
-                    {countryData.map(country => (
+                    {countryDataArray.map(country => (
                       <div
                         key={country.name}
-                        className={`${country.color} flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:opacity-90 transition-opacity`}
+                        className={`${country.color} flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:opacity-90 transition-opacity ${selectedCountry === country.name ? 'ring-4 ring-offset-2 ring-blue-500' : ''}`}
                         style={{ width: `${(country.value / totalCountryCalls) * 100}%` }}
+                        onClick={() => handleCountryClick(country.name)}
                       >
                        {country.name} ({country.value})
                       </div>
@@ -399,7 +428,9 @@ export default function Dashboard() {
                   </div>
 
                   <div>
-                    <h3 className="text-xl font-semibold mb-4">Call Log</h3>
+                    <h3 className="text-xl font-semibold mb-4">
+                        Call Log {selectedCountry && ` - ${selectedCountry}`}
+                    </h3>
                     <div className="border rounded-lg">
                       <Table>
                         <TableHeader>
@@ -413,7 +444,7 @@ export default function Dashboard() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredCalls.map(call => (
+                            {distributionFilteredCalls.map(call => (
                                 <TableRow key={call.call_id}>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
@@ -436,5 +467,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
