@@ -21,6 +21,7 @@ import {
   Zap,
   Percent
 } from "lucide-react";
+import PageHeader from "@/components/page-header";
 
 export default async function Dashboard() {
   const calls = await readCalls();
@@ -38,13 +39,8 @@ export default async function Dashboard() {
 
   return (
     <div className="flex flex-col">
+       <PageHeader title="Dashboard" />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <Tabs defaultValue="dashboard">
-          <TabsList>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="manual-input">Manual Data Input</TabsTrigger>
-          </TabsList>
-        </Tabs>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <StatCard
             title="Total Calls Today"
@@ -116,7 +112,7 @@ export default async function Dashboard() {
                         </TableHeader>
                         <TableBody>
                             {advancedCalls.map((call) => (
-                                <TableRow key={call.callId}>
+                                <TableRow key={`${call.callId}-${call.timestamp}`}>
                                     <TableCell>{new Date(call.timestamp).toLocaleString()}</TableCell>
                                     <TableCell>003228829609</TableCell>
                                     <TableCell>N/A</TableCell>
