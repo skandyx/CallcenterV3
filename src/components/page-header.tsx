@@ -7,6 +7,7 @@ import { CalendarIcon, Monitor } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { format } from "date-fns";
+import { StreamStatusIndicator } from "./stream-status-indicator";
 
 interface PageHeaderProps {
     title: string;
@@ -24,7 +25,10 @@ export default function PageHeader({ title, selectedDate, onDateChange }: PageHe
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
             <SidebarTrigger className="md:hidden"/>
-            <h1 className="text-2xl font-bold">{title === 'Dashboard' ? 'Call Center Analytics' : title}</h1>
+            <div className="flex items-center gap-2">
+                <StreamStatusIndicator />
+                <h1 className="text-2xl font-bold">{title === 'Dashboard' ? 'Call Center Analytics' : title}</h1>
+            </div>
             <div className="ml-auto flex items-center gap-4">
                 {onDateChange && (
                     <Popover>

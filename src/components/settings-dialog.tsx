@@ -26,6 +26,7 @@ import { Settings, Copy, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "./ui/separator";
 import { Switch } from "./ui/switch";
+import { useStreamStatus } from "@/context/stream-status-provider";
 
 const streamEndpoints = [
     { name: "Basic Call Data", path: "/api/stream" },
@@ -37,7 +38,7 @@ const streamEndpoints = [
 export function SettingsDialog() {
   const [baseUrl, setBaseUrl] = useState("");
   const { toast } = useToast();
-  const [isDataStreaming, setIsDataStreaming] = useState(true);
+  const { status, setStatus } = useStreamStatus();
   const [isAiEnabled, setIsAiEnabled] = useState(true);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,6 +82,11 @@ export function SettingsDialog() {
     }
   }
 
+  const handleStreamingToggle = (checked: boolean) => {
+    setStatus(checked ? 'idle' : 'disabled');
+  };
+
+
   return (
     <>
       <Dialog>
@@ -111,8 +117,8 @@ export function SettingsDialog() {
                           </div>
                           <Switch
                               id="data-streaming"
-                              checked={isDataStreaming}
-                              onCheckedChange={setIsDataStreaming}
+                              checked={status !== 'disabled'}
+                              onCheckedChange={handleStreamingToggle}
                           />
                       </div>
                        <div className="flex items-center justify-between rounded-lg border p-4">
