@@ -1,8 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { MainSidebar } from '@/components/main-sidebar';
 import { cn } from '@/lib/utils';
 import { StreamStatusProvider } from '@/context/stream-status-provider';
 
@@ -25,14 +23,9 @@ export default function RootLayout({
       </head>
       <body className={cn("font-body antialiased", "bg-background")}>
         <StreamStatusProvider>
-          <SidebarProvider>
-              <div className='flex min-h-screen'>
-                <MainSidebar />
-                <SidebarInset className="flex-1 bg-background">
-                  {children}
-                </SidebarInset>
-              </div>
-          </SidebarProvider>
+          <main className="min-h-screen">
+            {children}
+          </main>
         </StreamStatusProvider>
         <Toaster />
       </body>

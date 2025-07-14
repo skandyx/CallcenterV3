@@ -1,6 +1,5 @@
 'use client';
 
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { Button } from "./ui/button";
 import { CalendarIcon, Monitor } from "lucide-react";
@@ -24,7 +23,6 @@ export default function PageHeader({ title, selectedDate, onDateChange }: PageHe
 
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-            <SidebarTrigger className="md:hidden"/>
             <div className="flex items-center gap-2">
                 <StreamStatusIndicator />
                 <h1 className="text-2xl font-bold">{title === 'Dashboard' ? 'Call Center Analytics' : title}</h1>
