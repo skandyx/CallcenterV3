@@ -203,16 +203,16 @@ export default function Dashboard() {
             <TabsList className="grid w-full grid-cols-6 bg-muted">
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
                 <TabsTrigger value="advanced-calls">Données d'appel avancées</TabsTrigger>
-                <TabsTrigger value="agent-availability">Disponibilité des agents</TabsTrigger>
-                <TabsTrigger value="ivr-journey">Parcours IVR (avancé)</TabsTrigger>
+                <TabsTrigger value="profile-availability">Disponibilité des profils</TabsTrigger>
+                <TabsTrigger value="agent-connections">Connexions aux systèmes de file d'attente et disponibilité des agents</TabsTrigger>
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
-                <TabsTrigger value="call-distribution">Call Distribution by Country</TabsTrigger>
+                <TabsTrigger value="call-distribution">Distribution des appels</TabsTrigger>
             </TabsList>
             <TabsContent value="simplified-calls">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Call Log</CardTitle>
-                        <CardDescription>Vue détaillée des appels individuels pour la journée en cours.</CardDescription>
+                        <CardTitle>Données d'appel simplifiées</CardTitle>
+                        <CardDescription>Une ligne pour chaque appel. Recommandé pour Power BI.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center gap-4 mb-4">
@@ -269,8 +269,8 @@ export default function Dashboard() {
             <TabsContent value="advanced-calls">
                  <Card>
                     <CardHeader>
-                        <CardTitle>Advanced Call Log</CardTitle>
-                        <CardDescription>Journaux d'événements détaillés pour chaque appel, y compris les transferts et les tentatives. Idéal pour une analyse forensique.</CardDescription>
+                        <CardTitle>Données d'appel avancées</CardTitle>
+                        <CardDescription>Plus précis que « Données d'appel simplifiées ». Chaque appel peut être détaillé sur plusieurs lignes.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Input placeholder="Filter across all columns..." className="max-w-sm mb-4" />
@@ -303,12 +303,12 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
             </TabsContent>
-             <TabsContent value="agent-availability">
+             <TabsContent value="profile-availability">
               <Card>
                 <CardHeader>
-                  <CardTitle>Disponibilité des agents</CardTitle>
+                  <CardTitle>Disponibilité des profils</CardTitle>
                   <CardDescription>
-                    Vue détaillée de la disponibilité des agents (en minutes) par heure pour la journée sélectionnée.
+                    Les données indiquant le temps passé par chaque utilisateur dans chaque profil. Une ligne pour chaque heure, utilisateur et profil.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -339,12 +339,12 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
-            <TabsContent value="ivr-journey">
+            <TabsContent value="agent-connections">
               <Card>
                 <CardHeader>
-                  <CardTitle>Parcours IVR (avancé)</CardTitle>
+                  <CardTitle>Connexions aux systèmes de file d'attente et disponibilité des agents</CardTitle>
                   <CardDescription>
-                    Temps passé par les agents dans chaque statut pour chaque file d'attente (en minutes).
+                    Données indiquant le temps passé par chaque agent en état connecté, déconnecté ou inactif/en veille par file d'attente.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -410,12 +410,12 @@ export default function Dashboard() {
             <TabsContent value="call-distribution">
               <Card>
                 <CardHeader>
-                  <CardTitle>Call Distribution by Country</CardTitle>
-                  <CardDescription>Geographic call distribution. Click a country to see agent breakdown.</CardDescription>
+                  <CardTitle>Distribution des appels par pays</CardTitle>
+                  <CardDescription>Cliquez sur un pays pour filtrer le journal des appels.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">
                   <div className="w-full h-48 flex rounded-lg overflow-hidden">
-                    {countryDataArray.map(country => (
+                    {countryDataArray.length > 0 ? countryDataArray.map(country => (
                       <div
                         key={country.name}
                         className={`${country.color} flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:opacity-90 transition-opacity ${selectedCountry === country.name ? 'ring-4 ring-offset-2 ring-blue-500' : ''}`}
@@ -424,12 +424,16 @@ export default function Dashboard() {
                       >
                        {country.name} ({country.value})
                       </div>
-                    ))}
+                    )) : (
+                      <div className="flex items-center justify-center w-full h-full bg-muted text-muted-foreground">
+                        Aucune donnée de pays à afficher
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <h3 className="text-xl font-semibold mb-4">
-                        Call Log {selectedCountry && ` - ${selectedCountry}`}
+                        Journal des appels {selectedCountry && ` - ${selectedCountry}`}
                     </h3>
                     <div className="border rounded-lg">
                       <Table>
