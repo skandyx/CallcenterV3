@@ -28,6 +28,8 @@ import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
+import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
+import { TreemapContent } from '@/components/treemap-content';
 
 
 export default function Dashboard() {
@@ -38,7 +40,7 @@ export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [loading, setLoading] = useState(true);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -87,10 +89,10 @@ export default function Dashboard() {
 
   const totalCalls = filteredCalls.length;
   const answeredCalls = filteredCalls.filter((c) => c.status !== "Abandoned").length;
-  const avgWaitTime = filteredCalls.reduce((acc, c) => acc + c.time_in_queue_seconds, 0) / totalCalls || 0;
+  const avgWaitTime = filteredCalls.reduce((acc, c) => acc + (c.time_in_queue_seconds || 0), 0) / totalCalls || 0;
   
-  const serviceLevel10s = (filteredCalls.filter(c => c.time_in_queue_seconds <= 10).length / totalCalls) * 100 || 0;
-  const serviceLevel30s = (filteredCalls.filter(c => c.time_in_queue_seconds <= 30).length / totalCalls) * 100 || 0;
+  const serviceLevel10s = (filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 10).length / totalCalls) * 100 || 0;
+  const serviceLevel30s = (filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
   
   const statusAnalysis = filteredCalls.reduce((acc, call) => {
@@ -99,12 +101,13 @@ export default function Dashboard() {
       acc[status] = { count: 0, totalWait: 0, totalTalk: 0 };
     }
     acc[status].count++;
-    acc[status].totalWait += call.time_in_queue_seconds;
+    acc[status].totalWait += call.time_in_queue_seconds || 0;
     acc[status].totalTalk += call.talk_time_seconds || 0;
     return acc;
   }, {} as Record<string, { count: number, totalWait: number, totalTalk: number }>);
 
   const getCountryFromNumber = (phoneNumber: string) => {
+    if (!phoneNumber) return 'Unknown';
     if (phoneNumber.startsWith('0032')) return 'Belgium';
     if (phoneNumber.startsWith('0033')) return 'France';
     if (phoneNumber.startsWith('00216')) return 'Tunisia';
@@ -136,6 +139,32 @@ export default function Dashboard() {
 
   const distributionFilteredCalls = selectedCountry
     ? filteredCalls.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry)
+    : filteredCalls;
+    
+  const statusTreemapData = Object.values(filteredCalls.reduce((acc, call) => {
+    const mainStatus = call.status || 'N/A';
+    const detailStatus = call.status_detail || mainStatus;
+
+    if (!acc[mainStatus]) {
+      acc[mainStatus] = { name: mainStatus, children: {} };
+    }
+    if (!acc[mainStatus].children[detailStatus]) {
+      acc[mainStatus].children[detailStatus] = { name: detailStatus, value: 0 };
+    }
+    acc[mainStatus].children[detailStatus].value++;
+    return acc;
+  }, {} as Record<string, { name: string; children: Record<string, { name: string; value: number }> }>))
+  .map(main => ({
+    name: main.name,
+    children: Object.values(main.children),
+  }));
+
+  const handleStatusClick = (statusName: string) => {
+    setSelectedStatus(prev => (prev === statusName ? null : statusName));
+  };
+
+  const statusFilteredCalls = selectedStatus
+    ? filteredCalls.filter(call => (call.status === selectedStatus || call.status_detail === selectedStatus))
     : filteredCalls;
 
 
@@ -180,14 +209,14 @@ export default function Dashboard() {
             title="Service Level (<10s)"
             value={`${serviceLevel10s.toFixed(1)}%`}
             icon={<Zap className="h-4 w-4 text-muted-foreground" />}
-            description={`${filteredCalls.filter(c => c.time_in_queue_seconds <= 10).length}/${totalCalls} calls answered in time`}
+            description={`${filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 10).length}/${totalCalls} calls answered in time`}
             valueClassName="text-green-600"
           />
           <StatCard
             title="Service Level (<30s)"
             value={`${serviceLevel30s.toFixed(1)}%`}
             icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            description={`${filteredCalls.filter(c => c.time_in_queue_seconds <= 30).length}/${totalCalls} calls answered in time`}
+            description={`${filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length}/${totalCalls} calls answered in time`}
             valueClassName="text-green-600"
           />
           <StatCard
@@ -251,7 +280,7 @@ export default function Dashboard() {
                                     <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>{call.calling_number}</TableCell>
                                     <TableCell>{call.queue_name}</TableCell>
-                                    <TableCell>{call.time_in_queue_seconds}s</TableCell>
+                                    <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
                                     <TableCell>{call.talk_time_seconds || 0}s</TableCell>
                                     <TableCell>
                                         <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
@@ -324,8 +353,8 @@ export default function Dashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredProfileAvailability.map((profile) => (
-                        <TableRow key={`${profile.user_id}-${profile.hour}`}>
+                      {filteredProfileAvailability.map((profile, index) => (
+                        <TableRow key={`${profile.user_id}-${profile.hour}-${index}`}>
                           <TableCell>{profile.user}</TableCell>
                           <TableCell>{profile.email}</TableCell>
                           <TableCell>{profile.hour}:00</TableCell>
@@ -380,30 +409,71 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle>Analyse par statut</CardTitle>
                   <CardDescription>
-                    Répartition des appels par statut de terminaison, avec statistiques associées.
+                    Cliquez sur un statut dans le graphique pour filtrer le journal des appels.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Statut</TableHead>
-                        <TableHead>Nombre d'appels</TableHead>
-                        <TableHead>Temps d'attente moyen</TableHead>
-                        <TableHead>Temps de conversation moyen</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {Object.entries(statusAnalysis).map(([status, data]) => (
-                        <TableRow key={status}>
-                          <TableCell>{status}</TableCell>
-                          <TableCell>{data.count}</TableCell>
-                          <TableCell>{(data.totalWait / data.count).toFixed(1)}s</TableCell>
-                          <TableCell>{(data.totalTalk / data.count).toFixed(1)}s</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <CardContent className="space-y-8">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <Treemap
+                      data={statusTreemapData}
+                      dataKey="value"
+                      stroke="hsl(var(--card))"
+                      fill="hsl(var(--primary))"
+                      isAnimationActive={false}
+                      content={<TreemapContent />}
+                      onClick={(data) => handleStatusClick(data.name)}
+                    >
+                       <Tooltip
+                          labelFormatter={(name) => name}
+                          formatter={(value: any, name: any, props: any) => [`${value} calls`, props.payload.name]}
+                          cursor={{ fill: 'hsl(var(--muted))' }}
+                          contentStyle={{
+                              background: 'hsl(var(--background))',
+                              borderColor: 'hsl(var(--border))',
+                              borderRadius: 'var(--radius)',
+                          }}
+                      />
+                    </Treemap>
+                  </ResponsiveContainer>
+                   <div>
+                    <h3 className="text-xl font-semibold mb-4">
+                        Journal des appels {selectedStatus && ` - ${selectedStatus}`}
+                    </h3>
+                     <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Time</TableHead>
+                                <TableHead>Caller</TableHead>
+                                <TableHead>Queue</TableHead>
+                                <TableHead>Wait Time</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Status Detail</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {statusFilteredCalls.map((call) => {
+                                const callDate = new Date(call.enter_datetime);
+                                return (
+                                <TableRow key={call.call_id}>
+                                    <TableCell>{callDate.toLocaleDateString()}</TableCell>
+                                    <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
+                                    <TableCell>{call.calling_number}</TableCell>
+                                    <TableCell>{call.queue_name}</TableCell>
+                                    <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
+                                    <TableCell>
+                                        <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
+                                            {call.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>{call.status_detail}</TableCell>
+                                </TableRow>
+                            )})}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -471,3 +541,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
