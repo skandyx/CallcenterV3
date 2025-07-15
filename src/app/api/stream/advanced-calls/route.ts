@@ -5,12 +5,21 @@ import type { AdvancedCallData } from '@/types';
 
 export async function POST(request: Request) {
   try {
-    const body: AdvancedCallData = await request.json();
+    const body: AdvancedCallData[] = await request.json();
     console.log('Received advanced call data:', body);
-    if (!body.callId || !body.timestamp || !body.event) {
-        return NextResponse.json({ message: 'Invalid data format' }, { status: 400 });
+
+    if (!Array.isArray(body)) {
+      return NextResponse.json({ message: 'Invalid data format: expected an array' }, { status: 400 });
     }
-    await appendAdvancedCall(body);
+
+    for (const call of body) {
+        if (!call.call_id || !call.enter_datetime) {
+            console.warn('Invalid advanced call object skipped:', call);
+            continue;
+        }
+        await appendAdvancedCall(call);
+    }
+
     return NextResponse.json({ message: 'Data received' }, { status: 200 });
   } catch (error) {
     console.error('API Error /api/stream/advanced-calls:', error);
