@@ -131,24 +131,18 @@ export default function Dashboard({
     ? filteredCalls.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry)
     : filteredCalls;
     
-  const statusTreemapData = Object.values(filteredCalls.reduce((acc, call) => {
-    const mainStatus = call.status || 'N/A';
-    const detailStatus = call.status_detail || mainStatus;
-
-    if (!acc[mainStatus]) {
-      acc[mainStatus] = { name: mainStatus, children: {} };
-    }
-    if (!acc[mainStatus].children[detailStatus]) {
-      acc[mainStatus].children[detailStatus] = { name: detailStatus, value: 0 };
-    }
-    acc[mainStatus].children[detailStatus].value++;
-    return acc;
-  }, {} as Record<string, { name: string; children: Record<string, { name: string; value: number }> }>))
-  .map(main => ({
-    name: main.name,
-    size: main.children ? Object.values(main.children).reduce((acc, child) => acc + child.value, 0) : 0,
-    children: Object.values(main.children),
-  }));
+  const statusTreemapData = Object.values(
+    filteredCalls.reduce((acc, call) => {
+      const mainStatus = call.status || 'N/A';
+      const detailStatus = call.status_detail || mainStatus;
+  
+      if (!acc[detailStatus]) {
+        acc[detailStatus] = { name: detailStatus, size: 0, parent: mainStatus };
+      }
+      acc[detailStatus].size++;
+      return acc;
+    }, {} as Record<string, { name: string; size: number, parent: string }>)
+  );
 
 
   const handleStatusClick = (statusName: string) => {
@@ -205,8 +199,8 @@ export default function Dashboard({
             <TabsList className="grid w-full grid-cols-6 bg-muted">
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
                 <TabsTrigger value="advanced-calls">Données d'appel avancées</TabsTrigger>
-                <TabsTrigger value="profile-availability">Disponibilité des profils</TabsTrigger>
                 <TabsTrigger value="agent-connections">État des files et des agents</TabsTrigger>
+                <TabsTrigger value="profile-availability">Disponibilité des profils</TabsTrigger>
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
                 <TabsTrigger value="call-distribution">Distribution des appels</TabsTrigger>
             </TabsList>
@@ -398,13 +392,7 @@ export default function Dashboard({
                     >
                        <Tooltip
                           labelFormatter={(name) => name}
-                          formatter={(value: any, name: any, props: any) => {
-                            if (props.payload && props.payload.children) {
-                                const total = props.payload.children.reduce((acc: number, child: any) => acc + child.value, 0);
-                                return [`${total} calls`, props.payload.name];
-                            }
-                            return [value, name];
-                          }}
+                          formatter={(value: any, name: any, props: any) => [`${value} calls`, props.payload.name]}
                           cursor={{ fill: 'hsl(var(--muted))' }}
                           contentStyle={{
                               background: 'hsl(var(--background))',
@@ -520,3 +508,4 @@ export default function Dashboard({
     </div>
   );
 }
+
