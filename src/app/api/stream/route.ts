@@ -14,9 +14,9 @@ export async function POST(request: Request) {
     }
 
     for (const call of body) {
-        // Basic validation for each call object
-        if (!call.call_id || !call.enter_datetime || !call.status || !call.queue_name) {
-            console.warn('Invalid call data object skipped:', call);
+        // Basic validation for each call object, only checking for call_id to be more permissive.
+        if (!call.call_id) {
+            console.warn('Invalid call data object skipped (missing call_id):', call);
             continue; // Skip invalid objects
         }
         await appendCall(call);

@@ -13,8 +13,9 @@ export async function POST(request: Request) {
     }
 
     for (const call of body) {
-        if (!call.call_id || !call.enter_datetime) {
-            console.warn('Invalid advanced call object skipped:', call);
+        // Basic validation, only checking for call_id to be more permissive
+        if (!call.call_id) {
+            console.warn('Invalid advanced call object skipped (missing call_id):', call);
             continue;
         }
         await appendAdvancedCall(call);
