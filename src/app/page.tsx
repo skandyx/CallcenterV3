@@ -133,17 +133,15 @@ export default function Dashboard({
     
   const statusTreemapData = Object.values(
     filteredCalls.reduce((acc, call) => {
-      const mainStatus = call.status || 'N/A';
-      const detailStatus = call.status_detail || mainStatus;
+      const detailStatus = call.status_detail || call.status || 'N/A';
   
       if (!acc[detailStatus]) {
-        acc[detailStatus] = { name: detailStatus, size: 0, parent: mainStatus };
+        acc[detailStatus] = { name: detailStatus, size: 0 };
       }
       acc[detailStatus].size++;
       return acc;
-    }, {} as Record<string, { name: string; size: number, parent: string }>)
+    }, {} as Record<string, { name: string; size: number }>)
   );
-
 
   const handleStatusClick = (statusName: string) => {
     setSelectedStatus(prev => (prev === statusName ? null : statusName));
@@ -199,8 +197,8 @@ export default function Dashboard({
             <TabsList className="grid w-full grid-cols-6 bg-muted">
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
                 <TabsTrigger value="advanced-calls">Données d'appel avancées</TabsTrigger>
-                <TabsTrigger value="agent-connections">État des files et des agents</TabsTrigger>
                 <TabsTrigger value="profile-availability">Disponibilité des profils</TabsTrigger>
+                <TabsTrigger value="agent-connections">État des files et des agents</TabsTrigger>
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
                 <TabsTrigger value="call-distribution">Distribution des appels</TabsTrigger>
             </TabsList>
@@ -508,4 +506,3 @@ export default function Dashboard({
     </div>
   );
 }
-
