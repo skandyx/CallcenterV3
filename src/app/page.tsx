@@ -233,7 +233,7 @@ export default function Dashboard() {
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
                 <TabsTrigger value="advanced-calls">Données d'appel avancées</TabsTrigger>
                 <TabsTrigger value="profile-availability">Disponibilité des profils</TabsTrigger>
-                <TabsTrigger value="agent-connections">Connexions aux systèmes de file d'attente et disponibilité des agents</TabsTrigger>
+                <TabsTrigger value="agent-connections">État des files et des agents</TabsTrigger>
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
                 <TabsTrigger value="call-distribution">Distribution des appels</TabsTrigger>
             </TabsList>
@@ -371,7 +371,7 @@ export default function Dashboard() {
             <TabsContent value="agent-connections">
               <Card>
                 <CardHeader>
-                  <CardTitle>Connexions aux systèmes de file d'attente et disponibilité des agents</CardTitle>
+                  <CardTitle>État des files et des agents</CardTitle>
                   <CardDescription>
                     Données indiquant le temps passé par chaque agent en état connecté, déconnecté ou inactif/en veille par file d'attente.
                   </CardDescription>
@@ -541,4 +541,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
