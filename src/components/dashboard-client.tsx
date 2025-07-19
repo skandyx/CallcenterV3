@@ -24,12 +24,12 @@ import {
   Percent,
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Skeleton } from './ui/skeleton';
 import WorldMapChart from './world-map-chart';
 import StatusAnalysisChart from './status-analysis-chart';
 import AdvancedCallLog from './advanced-call-log';
+import CallLog from './call-log';
 
 export default function DashboardClient() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -40,18 +40,10 @@ export default function DashboardClient() {
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   
-  const [simplifiedCallsPage, setSimplifiedCallsPage] = useState(1);
   const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
   const [agentStatusPage, setAgentStatusPage] = useState(1);
 
   const ITEMS_PER_PAGE = 10;
-
-  const timeFormat: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  };
 
   const fetchData = async (initialLoad = false) => {
     if (initialLoad) {
@@ -106,7 +98,6 @@ export default function DashboardClient() {
       return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   };
 
-  const paginatedSimplifiedCalls = paginate(filteredCalls, simplifiedCallsPage);
   const paginatedProfileAvailability = paginate(filteredProfileAvailability, profileAvailabilityPage);
   const paginatedAgentStatus = paginate(filteredAgentStatus, agentStatusPage);
 
@@ -209,49 +200,7 @@ export default function DashboardClient() {
                 <TabsTrigger value="call-distribution">Call Distribution</TabsTrigger>
             </TabsList>
             <TabsContent value="simplified-calls">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Données d'appel simplifiées</CardTitle>
-                        <CardDescription>Une ligne pour chaque appel. Recommandé pour Power BI.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Time</TableHead>
-                                <TableHead>Caller</TableHead>
-                                <TableHead>Queue</TableHead>
-                                <TableHead>Wait Time</TableHead>
-                                <TableHead>Talk Time</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Status Detail</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {paginatedSimplifiedCalls.map((call) => {
-                                const callDate = new Date(call.enter_datetime);
-                                return (
-                                <TableRow key={call.call_id}>
-                                    <TableCell>{callDate.toLocaleDateString()}</TableCell>
-                                    <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
-                                    <TableCell>{call.calling_number}</TableCell>
-                                    <TableCell>{call.queue_name}</TableCell>
-                                    <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
-                                    <TableCell>{call.talk_time_seconds || 0}s</TableCell>
-                                    <TableCell>
-                                        <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
-                                            {call.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{call.status_detail}</TableCell>
-                                </TableRow>
-                            )})}
-                        </TableBody>
-                        </Table>
-                         {renderPaginationControls(filteredCalls.length, simplifiedCallsPage, setSimplifiedCallsPage)}
-                    </CardContent>
-                </Card>
+                <CallLog data={filteredCalls} />
             </TabsContent>
             <TabsContent value="advanced-calls">
                  <AdvancedCallLog data={filteredAdvancedCalls} />
