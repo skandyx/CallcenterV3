@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,7 +31,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveContainer, Treemap, Tooltip, LabelList } from 'recharts';
 import { CustomTreemapContent } from '@/components/custom-treemap-content';
+import { Button } from '@/components/ui/button';
 
+const ITEMS_PER_PAGE = 10;
 
 export default function Dashboard() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -47,6 +49,14 @@ export default function Dashboard() {
   const [profileAvailabilityFilter, setProfileAvailabilityFilter] = useState('');
   const [agentConnectionsFilter, setAgentConnectionsFilter] = useState('');
   const [statusTreemapFilter, setStatusTreemapFilter] = useState<string | null>(null);
+
+  // Pagination states
+  const [simplifiedCallsPage, setSimplifiedCallsPage] = useState(1);
+  const [advancedCallsPage, setAdvancedCallsPage] = useState(1);
+  const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
+  const [agentConnectionsPage, setAgentConnectionsPage] = useState(1);
+  const [statusFilteredCallsPage, setStatusFilteredCallsPage] = useState(1);
+  const [distributionFilteredCallsPage, setDistributionFilteredCallsPage] = useState(1);
   
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -110,11 +120,16 @@ export default function Dashboard() {
 
   const handleStatusClick = (statusName: string) => {
     setStatusTreemapFilter(prev => (prev === statusName ? null : statusName));
+    setStatusFilteredCallsPage(1);
   };
 
   const statusFilteredCalls = statusTreemapFilter
     ? baseFilteredCalls.filter(call => (call.status === statusTreemapFilter || call.status_detail === statusTreemapFilter))
     : baseFilteredCalls;
+  
+  const statusFilteredCallsPaginated = statusFilteredCalls.slice((statusFilteredCallsPage - 1) * ITEMS_PER_PAGE, statusFilteredCallsPage * ITEMS_PER_PAGE);
+  const totalStatusFilteredPages = Math.ceil(statusFilteredCalls.length / ITEMS_PER_PAGE);
+
 
   const filteredSimplifiedCalls = baseFilteredCalls.filter(call => {
     const searchTerm = simplifiedCallsFilter.toLowerCase();
@@ -125,6 +140,9 @@ export default function Dashboard() {
         String(val).toLowerCase().includes(searchTerm)
     );
   });
+  const simplifiedCallsPaginated = filteredSimplifiedCalls.slice((simplifiedCallsPage - 1) * ITEMS_PER_PAGE, simplifiedCallsPage * ITEMS_PER_PAGE);
+  const totalSimplifiedCallsPages = Math.ceil(filteredSimplifiedCalls.length / ITEMS_PER_PAGE);
+
 
   const filteredAdvancedCalls = baseFilteredAdvancedCalls.filter(call => {
       const searchTerm = advancedCallsFilter.toLowerCase();
@@ -132,6 +150,8 @@ export default function Dashboard() {
           String(val).toLowerCase().includes(searchTerm)
       );
   });
+  const advancedCallsPaginated = filteredAdvancedCalls.slice((advancedCallsPage - 1) * ITEMS_PER_PAGE, advancedCallsPage * ITEMS_PER_PAGE);
+  const totalAdvancedCallsPages = Math.ceil(filteredAdvancedCalls.length / ITEMS_PER_PAGE);
 
   const filteredProfileAvailability = baseFilteredProfileAvailability.filter(profile => {
     const searchTerm = profileAvailabilityFilter.toLowerCase();
@@ -141,6 +161,8 @@ export default function Dashboard() {
         new Date(profile.date).toLocaleDateString().toLowerCase().includes(searchTerm)
     );
   });
+  const profileAvailabilityPaginated = filteredProfileAvailability.slice((profileAvailabilityPage - 1) * ITEMS_PER_PAGE, profileAvailabilityPage * ITEMS_PER_PAGE);
+  const totalProfileAvailabilityPages = Math.ceil(filteredProfileAvailability.length / ITEMS_PER_PAGE);
 
   const filteredAgentConnections = baseFilteredAgentStatus.filter(status => {
     const searchTerm = agentConnectionsFilter.toLowerCase();
@@ -151,6 +173,9 @@ export default function Dashboard() {
         new Date(status.date).toLocaleDateString().toLowerCase().includes(searchTerm)
     );
   });
+  const agentConnectionsPaginated = filteredAgentConnections.slice((agentConnectionsPage - 1) * ITEMS_PER_PAGE, agentConnectionsPage * ITEMS_PER_PAGE);
+  const totalAgentConnectionsPages = Math.ceil(filteredAgentConnections.length / ITEMS_PER_PAGE);
+
 
   const getCountryFromNumber = (phoneNumber: string) => {
       if (!phoneNumber) return 'Unknown';
@@ -166,16 +191,16 @@ export default function Dashboard() {
       const country = getCountryFromNumber(call.calling_number);
       countryCounts[country] = (countryCounts[country] || 0) + 1;
     });
-  
-    const colors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'];
     
     return Object.entries(countryCounts)
-      .map(([name, size], index) => ({ 
+      .map(([name, size]) => ({ 
         name, 
-        size,
-        fill: colors[index % colors.length]
+        size
       }));
   }, [baseFilteredCalls]);
+
+  const distributionFilteredCalls = baseFilteredCalls.slice((distributionFilteredCallsPage - 1) * ITEMS_PER_PAGE, distributionFilteredCallsPage * ITEMS_PER_PAGE);
+  const totalDistributionFilteredPages = Math.ceil(baseFilteredCalls.length / ITEMS_PER_PAGE);
 
 
   return (
@@ -241,9 +266,9 @@ export default function Dashboard() {
                                 placeholder="Filter across all columns..." 
                                 className="max-w-sm"
                                 value={simplifiedCallsFilter}
-                                onChange={(e) => setSimplifiedCallsFilter(e.target.value)}
+                                onChange={(e) => { setSimplifiedCallsFilter(e.target.value); setSimplifiedCallsPage(1); }}
                             />
-                             <Select value={simplifiedCallsStatusFilter} onValueChange={setSimplifiedCallsStatusFilter}>
+                             <Select value={simplifiedCallsStatusFilter} onValueChange={(value) => { setSimplifiedCallsStatusFilter(value); setSimplifiedCallsPage(1); }}>
                                 <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="All Statuses" />
                                 </SelectTrigger>
@@ -254,50 +279,59 @@ export default function Dashboard() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Direction</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Time</TableHead>
-                                <TableHead>Caller</TableHead>
-                                <TableHead>Queue</TableHead>
-                                <TableHead>Wait Time</TableHead>
-                                <TableHead>Talk Time</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Status Detail</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredSimplifiedCalls.map((call) => {
-                                const callDate = new Date(call.enter_datetime);
-                                const outgoing = isOutgoing(call);
-                                return (
-                                <TableRow key={call.call_id}>
-                                    <TableCell>
-                                        {outgoing ? (
-                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
-                                        ) : (
-                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{callDate.toLocaleDateString()}</TableCell>
-                                    <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
-                                    <TableCell>{call.calling_number}</TableCell>
-                                    <TableCell>{call.queue_name}</TableCell>
-                                    <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
-                                    <TableCell>{call.talk_time_seconds || 0}s</TableCell>
-                                    <TableCell>
-                                        <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
-                                            {call.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{call.status_detail}</TableCell>
+                        <div className="border rounded-lg">
+                            <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Direction</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Time</TableHead>
+                                    <TableHead>Caller</TableHead>
+                                    <TableHead>Queue</TableHead>
+                                    <TableHead>Wait Time</TableHead>
+                                    <TableHead>Talk Time</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Status Detail</TableHead>
                                 </TableRow>
-                            )})}
-                        </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {simplifiedCallsPaginated.map((call) => {
+                                    const callDate = new Date(call.enter_datetime);
+                                    const outgoing = isOutgoing(call);
+                                    return (
+                                    <TableRow key={call.call_id}>
+                                        <TableCell>
+                                            {outgoing ? (
+                                                <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                            ) : (
+                                                <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                            )}
+                                        </TableCell>
+                                        <TableCell>{callDate.toLocaleDateString()}</TableCell>
+                                        <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
+                                        <TableCell>{call.calling_number}</TableCell>
+                                        <TableCell>{call.queue_name}</TableCell>
+                                        <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
+                                        <TableCell>{call.talk_time_seconds || 0}s</TableCell>
+                                        <TableCell>
+                                            <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
+                                                {call.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>{call.status_detail}</TableCell>
+                                    </TableRow>
+                                )})}
+                            </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
+                    <CardFooter className="justify-end space-x-2">
+                        <span className="text-sm text-muted-foreground">
+                            Page {simplifiedCallsPage} of {totalSimplifiedCallsPages}
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => setSimplifiedCallsPage(p => p - 1)} disabled={simplifiedCallsPage === 1}>Précédent</Button>
+                        <Button variant="outline" size="sm" onClick={() => setSimplifiedCallsPage(p => p + 1)} disabled={simplifiedCallsPage >= totalSimplifiedCallsPages}>Suivant</Button>
+                    </CardFooter>
                 </Card>
             </TabsContent>
             <TabsContent value="advanced-calls">
@@ -311,45 +345,54 @@ export default function Dashboard() {
                             placeholder="Filter across all columns..." 
                             className="max-w-sm mb-4"
                             value={advancedCallsFilter}
-                            onChange={(e) => setAdvancedCallsFilter(e.target.value)}
+                            onChange={(e) => { setAdvancedCallsFilter(e.target.value); setAdvancedCallsPage(1); }}
                         />
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Direction</TableHead>
-                                <TableHead>Date & Time</TableHead>
-                                <TableHead>Call ID</TableHead>
-                                <TableHead>Agent</TableHead>
-                                <TableHead>Caller Number</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Status Detail</TableHead>
-                                <TableHead>Processing Time</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredAdvancedCalls.map((call, index) => {
-                                const outgoing = isOutgoing(call);
-                                return(
-                                <TableRow key={`${call.call_id}-${index}`}>
-                                     <TableCell>
-                                        {outgoing ? (
-                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
-                                        ) : (
-                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{new Date(call.enter_datetime).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
-                                    <TableCell>{call.call_id}</TableCell>
-                                    <TableCell>{call.agent || 'N/A'}</TableCell>
-                                    <TableCell>{call.calling_number}</TableCell>
-                                    <TableCell>{call.status}</TableCell>
-                                    <TableCell>{call.status_detail}</TableCell>
-                                    <TableCell>{call.processing_time_seconds ? `${call.processing_time_seconds}s` : 'N/A'}</TableCell>
+                         <div className="border rounded-lg">
+                            <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Direction</TableHead>
+                                    <TableHead>Date & Time</TableHead>
+                                    <TableHead>Call ID</TableHead>
+                                    <TableHead>Agent</TableHead>
+                                    <TableHead>Caller Number</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Status Detail</TableHead>
+                                    <TableHead>Processing Time</TableHead>
                                 </TableRow>
-                            )})}
-                        </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {advancedCallsPaginated.map((call, index) => {
+                                    const outgoing = isOutgoing(call);
+                                    return(
+                                    <TableRow key={`${call.call_id}-${index}`}>
+                                         <TableCell>
+                                            {outgoing ? (
+                                                <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                            ) : (
+                                                <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                            )}
+                                        </TableCell>
+                                        <TableCell>{new Date(call.enter_datetime).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
+                                        <TableCell>{call.call_id}</TableCell>
+                                        <TableCell>{call.agent || 'N/A'}</TableCell>
+                                        <TableCell>{call.calling_number}</TableCell>
+                                        <TableCell>{call.status}</TableCell>
+                                        <TableCell>{call.status_detail}</TableCell>
+                                        <TableCell>{call.processing_time_seconds ? `${call.processing_time_seconds}s` : 'N/A'}</TableCell>
+                                    </TableRow>
+                                )})}
+                            </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
+                    <CardFooter className="justify-end space-x-2">
+                        <span className="text-sm text-muted-foreground">
+                            Page {advancedCallsPage} of {totalAdvancedCallsPages}
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => setAdvancedCallsPage(p => p - 1)} disabled={advancedCallsPage === 1}>Précédent</Button>
+                        <Button variant="outline" size="sm" onClick={() => setAdvancedCallsPage(p => p + 1)} disabled={advancedCallsPage >= totalAdvancedCallsPages}>Suivant</Button>
+                    </CardFooter>
                 </Card>
             </TabsContent>
              <TabsContent value="profile-availability">
@@ -364,36 +407,45 @@ export default function Dashboard() {
                   <Input 
                       placeholder="Filter by agent, email, or date..." 
                       value={profileAvailabilityFilter}
-                      onChange={(e) => setProfileAvailabilityFilter(e.target.value)}
+                      onChange={(e) => { setProfileAvailabilityFilter(e.target.value); setProfileAvailabilityPage(1); }}
                       className="max-w-sm mb-4" 
                   />
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Agent</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Hour</TableHead>
-                        <TableHead>Available (min)</TableHead>
-                        <TableHead>Lunch (min)</TableHead>
-                        <TableHead>Meeting (min)</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredProfileAvailability.map((profile, index) => (
-                        <TableRow key={`${profile.user_id}-${profile.hour}-${index}`}>
-                          <TableCell>{new Date(profile.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{profile.user}</TableCell>
-                          <TableCell>{profile.email}</TableCell>
-                          <TableCell>{profile.hour}:00</TableCell>
-                          <TableCell>{profile.Available}</TableCell>
-                          <TableCell>{profile.Lunch}</TableCell>
-                          <TableCell>{profile.Meeting}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Agent</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Hour</TableHead>
+                            <TableHead>Available (min)</TableHead>
+                            <TableHead>Lunch (min)</TableHead>
+                            <TableHead>Meeting (min)</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {profileAvailabilityPaginated.map((profile, index) => (
+                            <TableRow key={`${profile.user_id}-${profile.hour}-${index}`}>
+                              <TableCell>{new Date(profile.date).toLocaleDateString()}</TableCell>
+                              <TableCell>{profile.user}</TableCell>
+                              <TableCell>{profile.email}</TableCell>
+                              <TableCell>{profile.hour}:00</TableCell>
+                              <TableCell>{profile.Available}</TableCell>
+                              <TableCell>{profile.Lunch}</TableCell>
+                              <TableCell>{profile.Meeting}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                  </div>
                 </CardContent>
+                 <CardFooter className="justify-end space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                        Page {profileAvailabilityPage} of {totalProfileAvailabilityPages}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => setProfileAvailabilityPage(p => p - 1)} disabled={profileAvailabilityPage === 1}>Précédent</Button>
+                    <Button variant="outline" size="sm" onClick={() => setProfileAvailabilityPage(p => p + 1)} disabled={profileAvailabilityPage >= totalProfileAvailabilityPages}>Suivant</Button>
+                </CardFooter>
               </Card>
             </TabsContent>
             <TabsContent value="agent-connections">
@@ -408,36 +460,45 @@ export default function Dashboard() {
                    <Input 
                       placeholder="Filter by agent, email or queue..." 
                       value={agentConnectionsFilter}
-                      onChange={(e) => setAgentConnectionsFilter(e.target.value)}
+                      onChange={(e) => { setAgentConnectionsFilter(e.target.value); setAgentConnectionsPage(1); }}
                       className="max-w-sm mb-4" 
                   />
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Agent</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>File d'attente</TableHead>
-                        <TableHead>Connecté (min)</TableHead>
-                        <TableHead>En pause (min)</TableHead>
-                        <TableHead>Déconnecté (min)</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAgentConnections.map((status, index) => (
-                        <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
-                          <TableCell>{new Date(status.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{status.user}</TableCell>
-                          <TableCell>{status.email}</TableCell>
-                          <TableCell>{status.queuename}</TableCell>
-                          <TableCell>{status.loggedIn}</TableCell>
-                          <TableCell>{status.idle}</TableCell>
-                          <TableCell>{status.loggedOut}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Agent</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>File d'attente</TableHead>
+                            <TableHead>Connecté (min)</TableHead>
+                            <TableHead>En pause (min)</TableHead>
+                            <TableHead>Déconnecté (min)</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {agentConnectionsPaginated.map((status, index) => (
+                            <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
+                              <TableCell>{new Date(status.date).toLocaleDateString()}</TableCell>
+                              <TableCell>{status.user}</TableCell>
+                              <TableCell>{status.email}</TableCell>
+                              <TableCell>{status.queuename}</TableCell>
+                              <TableCell>{status.loggedIn}</TableCell>
+                              <TableCell>{status.idle}</TableCell>
+                              <TableCell>{status.loggedOut}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                  </div>
                 </CardContent>
+                <CardFooter className="justify-end space-x-2">
+                    <span className="text-sm text-muted-foreground">
+                        Page {agentConnectionsPage} of {totalAgentConnectionsPages}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => setAgentConnectionsPage(p => p - 1)} disabled={agentConnectionsPage === 1}>Précédent</Button>
+                    <Button variant="outline" size="sm" onClick={() => setAgentConnectionsPage(p => p + 1)} disabled={agentConnectionsPage >= totalAgentConnectionsPages}>Suivant</Button>
+                </CardFooter>
               </Card>
             </TabsContent>
             <TabsContent value="status-analysis">
@@ -490,7 +551,7 @@ export default function Dashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {statusFilteredCalls.map((call) => {
+                            {statusFilteredCallsPaginated.map((call) => {
                                 const callDate = new Date(call.enter_datetime);
                                 const outgoing = isOutgoing(call);
                                 return (
@@ -518,6 +579,13 @@ export default function Dashboard() {
                         </TableBody>
                       </Table>
                     </div>
+                     <div className="flex justify-end space-x-2 pt-4">
+                        <span className="text-sm text-muted-foreground">
+                            Page {statusFilteredCallsPage} of {totalStatusFilteredPages}
+                        </span>
+                        <Button variant="outline" size="sm" onClick={() => setStatusFilteredCallsPage(p => p - 1)} disabled={statusFilteredCallsPage === 1}>Précédent</Button>
+                        <Button variant="outline" size="sm" onClick={() => setStatusFilteredCallsPage(p => p + 1)} disabled={statusFilteredCallsPage >= totalStatusFilteredPages}>Suivant</Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -535,6 +603,7 @@ export default function Dashboard() {
                                 dataKey="size"
                                 aspectRatio={4 / 3}
                                 stroke="#fff"
+                                fill="#8884d8"
                                 isAnimationActive={false}
                                 content={<CustomTreemapContent />}
                             />
@@ -557,7 +626,7 @@ export default function Dashboard() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {baseFilteredCalls.map(call => {
+                                        {distributionFilteredCalls.map(call => {
                                             const outgoing = isOutgoing(call);
                                             return (
                                             <TableRow key={call.call_id}>
@@ -578,6 +647,13 @@ export default function Dashboard() {
                                         )})}
                                     </TableBody>
                                 </Table>
+                            </div>
+                            <div className="flex justify-end space-x-2 pt-4">
+                                <span className="text-sm text-muted-foreground">
+                                    Page {distributionFilteredCallsPage} of {totalDistributionFilteredPages}
+                                </span>
+                                <Button variant="outline" size="sm" onClick={() => setDistributionFilteredCallsPage(p => p - 1)} disabled={distributionFilteredCallsPage === 1}>Précédent</Button>
+                                <Button variant="outline" size="sm" onClick={() => setDistributionFilteredCallsPage(p => p + 1)} disabled={distributionFilteredCallsPage >= totalDistributionFilteredPages}>Suivant</Button>
                             </div>
                         </div>
                     </CardContent>
