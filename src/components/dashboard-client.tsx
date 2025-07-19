@@ -420,9 +420,9 @@ export default function DashboardClient() {
                         Cliquez sur un statut dans le graphique pour filtrer le journal des appels.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="md:col-span-1">
-                            <ResponsiveContainer width="100%" height={500}>
+                    <CardContent>
+                        <div className="mb-8">
+                            <ResponsiveContainer width="100%" height={400}>
                                 <Treemap
                                 data={statusTreemapData}
                                 dataKey="size"
@@ -434,7 +434,7 @@ export default function DashboardClient() {
                                 />
                             </ResponsiveContainer>
                         </div>
-                        <div className="md:col-span-1">
+                        <div>
                             <h3 className="text-xl font-semibold mb-4">
                                 Journal des appels {selectedStatus && ` - ${selectedStatus}`}
                             </h3>
@@ -537,4 +537,5 @@ export default function DashboardClient() {
     </div>
   );
 }
+
 
