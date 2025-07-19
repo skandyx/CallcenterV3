@@ -29,7 +29,7 @@ import {
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, Treemap, Tooltip, LabelList } from 'recharts';
+import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { CustomTreemapContent } from '@/components/custom-treemap-content';
 
@@ -58,6 +58,9 @@ export default function Dashboard() {
   const [agentConnectionsPage, setAgentConnectionsPage] = useState(1);
   const [statusFilteredCallsPage, setStatusFilteredCallsPage] = useState(1);
   const [distributionFilteredCallsPage, setDistributionFilteredCallsPage] = useState(1);
+
+  // State for hierarchical treemap
+  const [treemapBreadcrumbs, setTreemapBreadcrumbs] = useState<string[]>(['root']);
   
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -186,23 +189,84 @@ export default function Dashboard() {
       return 'Other';
   };
   
-  const countryDistributionData = useMemo(() => {
-    const countryCounts: { [key: string]: number } = {};
+  const distributionTreemapData = useMemo(() => {
+    const hierarchy = { name: 'root', children: [] as any[] };
+
     baseFilteredCalls.forEach(call => {
-      const country = getCountryFromNumber(call.calling_number);
-      countryCounts[country] = (countryCounts[country] || 0) + 1;
+        const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
+        const country = getCountryFromNumber(call.calling_number);
+        const agentOrQueue = call.agent?.trim() || call.queue_name?.trim() || 'N/A';
+
+        let directionNode = hierarchy.children.find(d => d.name === direction);
+        if (!directionNode) {
+            directionNode = { name: direction, children: [] };
+            hierarchy.children.push(directionNode);
+        }
+
+        let countryNode = directionNode.children.find((c:any) => c.name === country);
+        if (!countryNode) {
+            countryNode = { name: country, children: [] };
+            directionNode.children.push(countryNode);
+        }
+
+        let leafNode = countryNode.children.find((l:any) => l.name === agentOrQueue);
+        if (!leafNode) {
+            leafNode = { name: agentOrQueue, size: 0 };
+            countryNode.children.push(leafNode);
+        }
+        leafNode.size++;
     });
-    
-    return Object.entries(countryCounts)
-      .map(([name, size]) => ({ 
-        name, 
-        size
-      }));
+
+    return hierarchy.children;
   }, [baseFilteredCalls]);
 
-  const distributionFilteredCalls = baseFilteredCalls.slice((distributionFilteredCallsPage - 1) * ITEMS_PER_PAGE, distributionFilteredCallsPage * ITEMS_PER_PAGE);
-  const totalDistributionFilteredPages = Math.ceil(baseFilteredCalls.length / ITEMS_PER_PAGE);
+  const handleTreemapClick = (data: any) => {
+    if (data && data.name) {
+      setTreemapBreadcrumbs(prev => [...prev, data.name]);
+    }
+  };
 
+  const handleBreadcrumbClick = (index: number) => {
+    setTreemapBreadcrumbs(prev => prev.slice(0, index + 1));
+  };
+
+  const getCurrentTreemapData = () => {
+    let currentData: any[] = distributionTreemapData;
+    for (let i = 1; i < treemapBreadcrumbs.length; i++) {
+        const breadcrumb = treemapBreadcrumbs[i];
+        const nextNode = currentData.find(item => item.name === breadcrumb);
+        if (nextNode && nextNode.children) {
+            currentData = nextNode.children;
+        } else {
+            return [];
+        }
+    }
+    return currentData;
+  };
+  const currentTreemapLevelData = getCurrentTreemapData();
+
+
+  const distributionFilteredCalls = useMemo(() => {
+    let filtered = baseFilteredCalls;
+    const level = treemapBreadcrumbs.length;
+
+    if (level > 1) { // Direction level
+        const direction = treemapBreadcrumbs[1] === 'Outbound';
+        filtered = filtered.filter(call => isOutgoing(call) === direction);
+    }
+    if (level > 2) { // Country level
+        const country = treemapBreadcrumbs[2];
+        filtered = filtered.filter(call => getCountryFromNumber(call.calling_number) === country);
+    }
+    if (level > 3) { // Agent/Queue level
+        const agentOrQueue = treemapBreadcrumbs[3];
+        filtered = filtered.filter(call => (call.agent?.trim() || call.queue_name?.trim() || 'N/A') === agentOrQueue);
+    }
+    return filtered;
+  }, [baseFilteredCalls, treemapBreadcrumbs]);
+  
+  const distributionFilteredCallsPaginated = distributionFilteredCalls.slice((distributionFilteredCallsPage - 1) * ITEMS_PER_PAGE, distributionFilteredCallsPage * ITEMS_PER_PAGE);
+  const totalDistributionFilteredPages = Math.ceil(distributionFilteredCalls.length / ITEMS_PER_PAGE);
 
   return (
     <div className="flex flex-col">
@@ -595,17 +659,34 @@ export default function Dashboard() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Distribution des appels par pays</CardTitle>
-                        <CardDescription>Visualisation de tous les appels répartis par pays.</CardDescription>
+                        <CardDescription>Cliquez sur un rectangle pour explorer la hiérarchie des appels.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="flex items-center gap-2">
+                            {treemapBreadcrumbs.map((breadcrumb, index) => (
+                                <React.Fragment key={breadcrumb}>
+                                    <Button
+                                        variant="link"
+                                        className="p-0 h-auto"
+                                        onClick={() => handleBreadcrumbClick(index)}
+                                    >
+                                        {breadcrumb === 'root' ? 'Total' : breadcrumb}
+                                    </Button>
+                                    {index < treemapBreadcrumbs.length - 1 && <span>/</span>}
+                                </React.Fragment>
+                            ))}
+                        </div>
                         <ResponsiveContainer width="100%" height={300}>
-                            <Treemap
-                                data={countryDistributionData}
-                                aspectRatio={4 / 3}
+                           <Treemap
+                                data={currentTreemapLevelData}
                                 dataKey="size"
+                                aspectRatio={4 / 3}
+                                stroke="hsl(var(--card))"
+                                fill="hsl(var(--primary))"
                                 isAnimationActive={false}
                                 content={<CustomTreemapContent />}
-                            />
+                                onClick={handleTreemapClick}
+                           />
                         </ResponsiveContainer>
                         <div>
                             <h3 className="text-xl font-semibold mb-4">
@@ -625,7 +706,7 @@ export default function Dashboard() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {distributionFilteredCalls.map(call => {
+                                        {distributionFilteredCallsPaginated.map(call => {
                                             const outgoing = isOutgoing(call);
                                             return (
                                             <TableRow key={call.call_id}>
