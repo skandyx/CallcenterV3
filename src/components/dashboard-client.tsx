@@ -22,23 +22,14 @@ import {
   Clock,
   Zap,
   Percent,
-  ArrowDownCircle,
-  ArrowUpCircle,
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { CustomTreemapContent } from '@/components/custom-treemap-content';
 import { Skeleton } from './ui/skeleton';
 import WorldMapChart from './world-map-chart';
+import StatusAnalysisChart from './status-analysis-chart';
 
-interface TreemapNode {
-    name: string;
-    size?: number;
-    children?: TreemapNode[];
-  }
-  
 export default function DashboardClient() {
   const [calls, setCalls] = useState<CallData[]>([]);
   const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>([]);
@@ -52,11 +43,8 @@ export default function DashboardClient() {
   const [advancedCallsPage, setAdvancedCallsPage] = useState(1);
   const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
   const [agentStatusPage, setAgentStatusPage] = useState(1);
-  const [statusAnalysisPage, setStatusAnalysisPage] = useState(1);
 
   const ITEMS_PER_PAGE = 10;
-
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -89,8 +77,8 @@ export default function DashboardClient() {
   }
 
   useEffect(() => {
-    fetchData(true); // Initial fetch with loading state
-    const interval = setInterval(() => fetchData(false), 5000); // Subsequent fetches without loading state
+    fetchData(true);
+    const interval = setInterval(() => fetchData(false), 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -98,8 +86,6 @@ export default function DashboardClient() {
     if (!selectedDate) return items;
     return items.filter(item => new Date(item[dateKey]).toDateString() === selectedDate.toDateString());
   }
-
-  const isOutgoing = (call: CallData | AdvancedCallData) => call.status_detail === 'Outgoing';
 
   const filteredCalls = useMemo(() => filterByDate(calls, 'enter_datetime'), [calls, selectedDate]);
   const filteredAdvancedCalls = useMemo(() => filterByDate(advancedCalls, 'enter_datetime'), [advancedCalls, selectedDate]);
@@ -114,29 +100,6 @@ export default function DashboardClient() {
   const serviceLevel30s = (filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
 
-  const statusTreemapData = React.useMemo(() => {
-    return Object.values(
-      filteredCalls.reduce((acc, call) => {
-        const detailStatus = call.status_detail || call.status || 'N/A';
-        if (!acc[detailStatus]) {
-          acc[detailStatus] = { name: detailStatus, size: 0 };
-        }
-        acc[detailStatus].size++;
-        return acc;
-      }, {} as Record<string, { name: string; size: number }>)
-    );
-  }, [filteredCalls]);
-
-  const handleStatusClick = (statusName: string) => {
-    setSelectedStatus(prev => (prev === statusName ? null : statusName));
-    setStatusAnalysisPage(1);
-  };
-
-  const statusFilteredCalls = selectedStatus
-    ? filteredCalls.filter(call => (call.status === selectedStatus || call.status_detail === selectedStatus))
-    : filteredCalls;
-
-
   // Pagination Logic
   const paginate = (data: any[], page: number) => {
       const startIndex = (page - 1) * ITEMS_PER_PAGE;
@@ -147,7 +110,6 @@ export default function DashboardClient() {
   const paginatedAdvancedCalls = paginate(filteredAdvancedCalls, advancedCallsPage);
   const paginatedProfileAvailability = paginate(filteredProfileAvailability, profileAvailabilityPage);
   const paginatedAgentStatus = paginate(filteredAgentStatus, agentStatusPage);
-  const paginatedStatusAnalysisCalls = paginate(statusFilteredCalls, statusAnalysisPage);
 
   const renderPaginationControls = (dataLength: number, page: number, setPage: (page: number) => void) => {
       const totalPages = Math.ceil(dataLength / ITEMS_PER_PAGE);
@@ -404,71 +366,7 @@ export default function DashboardClient() {
               </Card>
             </TabsContent>
             <TabsContent value="status-analysis">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Analyse par statut</CardTitle>
-                  <CardDescription>
-                    Cliquez sur un statut dans le graphique pour filtrer le journal des appels.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-8">
-                    <div className="h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                          <Treemap
-                              data={statusTreemapData}
-                              dataKey="size"
-                              type="squarify"
-                              stroke="hsl(var(--card))"
-                              fill="hsl(var(--primary))"
-                              content={<CustomTreemapContent />}
-                              onClick={(data) => handleStatusClick(data.name)}
-                          />
-                      </ResponsiveContainer>
-                    </div>
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">
-                      Journal des appels {selectedStatus && ` - ${selectedStatus}`}
-                    </h3>
-                    <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Direction</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Caller</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {paginatedStatusAnalysisCalls.map((call) => {
-                            const callDate = new Date(call.enter_datetime);
-                            const outgoing = isOutgoing(call);
-                            return (
-                              <TableRow key={call.call_id}>
-                                <TableCell>
-                                  {outgoing ? (
-                                    <ArrowUpCircle className="h-5 w-5 text-red-500" />
-                                  ) : (
-                                    <ArrowDownCircle className="h-5 w-5 text-green-500" />
-                                  )}
-                                </TableCell>
-                                <TableCell>{callDate.toLocaleDateString()}</TableCell>
-                                <TableCell>{call.calling_number}</TableCell>
-                                <TableCell>
-                                  <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
-                                    {call.status}
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            )
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                    {renderPaginationControls(statusFilteredCalls.length, statusAnalysisPage, setStatusAnalysisPage)}
-                  </div>
-                </CardContent>
-              </Card>
+              <StatusAnalysisChart data={filteredCalls} />
             </TabsContent>
             <TabsContent value="call-distribution">
                 <WorldMapChart data={filteredCalls} />
