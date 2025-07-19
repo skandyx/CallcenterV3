@@ -49,6 +49,7 @@ export default function Dashboard({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [profileFilter, setProfileFilter] = useState('');
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -150,6 +151,15 @@ export default function Dashboard({
   const statusFilteredCalls = selectedStatus
     ? filteredCalls.filter(call => (call.status === selectedStatus || call.status_detail === selectedStatus))
     : filteredCalls;
+
+  const additionallyFilteredProfileAvailability = filteredProfileAvailability.filter(profile => {
+    const searchTerm = profileFilter.toLowerCase();
+    return (
+        profile.user.toLowerCase().includes(searchTerm) ||
+        profile.email.toLowerCase().includes(searchTerm) ||
+        new Date(profile.date).toLocaleDateString().toLowerCase().includes(searchTerm)
+    );
+  });
 
   return (
     <div className="flex flex-col">
@@ -306,9 +316,16 @@ export default function Dashboard({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <Input 
+                      placeholder="Filter by agent, email, or date..." 
+                      value={profileFilter}
+                      onChange={(e) => setProfileFilter(e.target.value)}
+                      className="max-w-sm mb-4" 
+                  />
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Date</TableHead>
                         <TableHead>Agent</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Hour</TableHead>
@@ -318,8 +335,9 @@ export default function Dashboard({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredProfileAvailability.map((profile, index) => (
+                      {additionallyFilteredProfileAvailability.map((profile, index) => (
                         <TableRow key={`${profile.user_id}-${profile.hour}-${index}`}>
+                          <TableCell>{new Date(profile.date).toLocaleDateString()}</TableCell>
                           <TableCell>{profile.user}</TableCell>
                           <TableCell>{profile.email}</TableCell>
                           <TableCell>{profile.hour}:00</TableCell>
