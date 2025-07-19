@@ -25,12 +25,14 @@ import {
   Percent,
   ArrowDownCircle,
   ArrowUpCircle,
+  ArrowLeft,
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, Treemap, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { TreemapContent } from '@/components/treemap-content';
+import { Button } from '@/components/ui/button';
 
 export default function Dashboard() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -46,6 +48,11 @@ export default function Dashboard() {
   const [profileAvailabilityFilter, setProfileAvailabilityFilter] = useState('');
   const [agentConnectionsFilter, setAgentConnectionsFilter] = useState('');
   const [statusTreemapFilter, setStatusTreemapFilter] = useState<string | null>(null);
+  
+  // State for hierarchical treemap
+  const [treemapData, setTreemapData] = useState<any[]>([]);
+  const [treemapBreadcrumbs, setTreemapBreadcrumbs] = useState<any[]>([]);
+
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -151,14 +158,78 @@ export default function Dashboard() {
     );
   });
 
-  const distributionChartData = useMemo(() => {
-    const inbound = baseFilteredCalls.filter(call => !isOutgoing(call)).length;
-    const outbound = baseFilteredCalls.filter(call => isOutgoing(call)).length;
-    return [
-      { name: 'Inbound', calls: inbound },
-      { name: 'Outbound', calls: outbound },
-    ];
+  const distributionFilteredCalls = useMemo(() => {
+    if (treemapBreadcrumbs.length === 0) {
+      return baseFilteredCalls;
+    }
+    const lastCrumb = treemapBreadcrumbs[treemapBreadcrumbs.length - 1];
+    return lastCrumb.calls || baseFilteredCalls;
+  }, [treemapBreadcrumbs, baseFilteredCalls]);
+
+  const getCountryFromNumber = (phoneNumber: string) => {
+      if (!phoneNumber) return 'Unknown';
+      if (phoneNumber.startsWith('0032')) return 'Belgium';
+      if (phoneNumber.startsWith('0033')) return 'France';
+      if (phoneNumber.startsWith('00216')) return 'Tunisia';
+      return 'Other';
+  };
+  
+  useEffect(() => {
+    const processData = () => {
+        const hierarchy = {
+            Inbound: {} as any,
+            Outbound: {} as any,
+        };
+
+        baseFilteredCalls.forEach(call => {
+            const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
+            const country = getCountryFromNumber(call.calling_number);
+            const target = call.agent || call.queue_name || 'N/A';
+
+            if (!hierarchy[direction][country]) {
+                hierarchy[direction][country] = {};
+            }
+            if (!hierarchy[direction][country][target]) {
+                hierarchy[direction][country][target] = [];
+            }
+            hierarchy[direction][country][target].push(call);
+        });
+
+        const initialData = Object.keys(hierarchy).map(direction => ({
+            name: direction,
+            children: Object.keys(hierarchy[direction]).map(country => ({
+                name: country,
+                children: Object.keys(hierarchy[direction][country]).map(target => ({
+                    name: target,
+                    size: hierarchy[direction][country][target].length,
+                    calls: hierarchy[direction][country][target],
+                })),
+                calls: [].concat(...Object.values(hierarchy[direction][country]))
+            })),
+            calls: [].concat(...Object.values(hierarchy[direction]).flatMap(country => Object.values(country)))
+        }));
+        setTreemapData(initialData);
+        setTreemapBreadcrumbs([]);
+    };
+    processData();
   }, [baseFilteredCalls]);
+
+  const handleTreemapClick = (node: any) => {
+      if (node && node.children && node.children.length > 0) {
+          setTreemapBreadcrumbs(prev => [...prev, { name: node.name, data: treemapData, calls: node.calls }]);
+          setTreemapData(node.children);
+      }
+  };
+
+  const handleGoBack = () => {
+      if (treemapBreadcrumbs.length > 0) {
+          const newBreadcrumbs = [...treemapBreadcrumbs];
+          const lastState = newBreadcrumbs.pop();
+          setTreemapData(lastState.data);
+          setTreemapBreadcrumbs(newBreadcrumbs);
+      }
+  };
+
 
   return (
     <div className="flex flex-col">
@@ -508,15 +579,24 @@ export default function Dashboard() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Distribution des appels</CardTitle>
-                        <CardDescription>Total des appels entrants et sortants.</CardDescription>
+                        <CardDescription>
+                            {treemapBreadcrumbs.length > 0 ? `Chemin: ${treemapBreadcrumbs.map(b => b.name).join(' > ')}` : "Cliquez sur un bloc pour explorer les données."}
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-8">
+                    <CardContent className="space-y-4">
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={distributionChartData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
+                            <Treemap
+                                data={treemapData}
+                                dataKey="size"
+                                aspectRatio={4 / 3}
+                                stroke="hsl(var(--card))"
+                                fill="hsl(var(--primary))"
+                                content={<TreemapContent />}
+                                onClick={handleTreemapClick}
+                                isAnimationActive={false}
+                            >
                                 <Tooltip
+                                    formatter={(value: any, name: any) => [`${value} calls`, name]}
                                     cursor={{ fill: 'hsl(var(--muted))' }}
                                     contentStyle={{
                                         background: 'hsl(var(--background))',
@@ -524,10 +604,14 @@ export default function Dashboard() {
                                         borderRadius: 'var(--radius)',
                                     }}
                                 />
-                                <Legend />
-                                <Bar dataKey="calls" fill="hsl(var(--primary))" name="Total Calls" />
-                            </BarChart>
+                            </Treemap>
                         </ResponsiveContainer>
+                        {treemapBreadcrumbs.length > 0 && (
+                            <Button variant="outline" onClick={handleGoBack}>
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Monter d'un niveau
+                            </Button>
+                        )}
                         <div>
                             <h3 className="text-xl font-semibold mb-4">
                                 Journal des appels
@@ -546,7 +630,7 @@ export default function Dashboard() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {baseFilteredCalls.map(call => {
+                                        {distributionFilteredCalls.map(call => {
                                             const outgoing = isOutgoing(call);
                                             return (
                                             <TableRow key={call.call_id}>
@@ -577,5 +661,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-
