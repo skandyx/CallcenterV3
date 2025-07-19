@@ -25,14 +25,12 @@ import {
   Percent,
   ArrowDownCircle,
   ArrowUpCircle,
-  ArrowLeft,
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { TreemapContent } from '@/components/treemap-content';
-import { Button } from '@/components/ui/button';
 
 export default function Dashboard() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -49,12 +47,6 @@ export default function Dashboard() {
   const [agentConnectionsFilter, setAgentConnectionsFilter] = useState('');
   const [statusTreemapFilter, setStatusTreemapFilter] = useState<string | null>(null);
   
-  // State for hierarchical treemap
-  const [distributionTreemapData, setDistributionTreemapData] = useState<any[]>([]);
-  const [currentTreemapLevel, setCurrentTreemapLevel] = useState<any[]>([]);
-  const [treemapBreadcrumbs, setTreemapBreadcrumbs] = useState<any[]>([]);
-
-
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
     minute: '2-digit',
@@ -167,67 +159,14 @@ export default function Dashboard() {
       return 'Other';
   };
   
-  useEffect(() => {
-    const hierarchy = {
-      name: 'Calls',
-      children: [
-        { name: 'Inbound', children: [] as any[], calls: [] as CallData[] },
-        { name: 'Outbound', children: [] as any[], calls: [] as CallData[] }
-      ]
-    };
-
-    const countryMap: { [key: string]: { [key: string]: { name: string, children: any[], calls: CallData[] } } } = {
-      Inbound: {},
-      Outbound: {}
-    };
-
+  const countryDistributionData = useMemo(() => {
+    const countryCounts: { [key: string]: number } = {};
     baseFilteredCalls.forEach(call => {
-      const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
       const country = getCountryFromNumber(call.calling_number);
-
-      if (!countryMap[direction][country]) {
-        countryMap[direction][country] = { name: country, children: [], calls: [] };
-      }
-      countryMap[direction][country].calls.push(call);
+      countryCounts[country] = (countryCounts[country] || 0) + 1;
     });
-    
-    hierarchy.children[0].children = Object.values(countryMap['Inbound']).map(c => ({...c, size: c.calls.length}));
-    hierarchy.children[1].children = Object.values(countryMap['Outbound']).map(c => ({...c, size: c.calls.length}));
-    
-    hierarchy.children[0].calls = [].concat(...Object.values(countryMap['Inbound']).map(c => c.calls));
-    hierarchy.children[1].calls = [].concat(...Object.values(countryMap['Outbound']).map(c => c.calls));
-
-    const initialData = hierarchy.children.map(d => ({...d, size: d.calls.length}));
-    
-    setDistributionTreemapData(initialData);
-    setCurrentTreemapLevel(initialData);
-    setTreemapBreadcrumbs([]);
+    return Object.entries(countryCounts).map(([name, size]) => ({ name, size }));
   }, [baseFilteredCalls]);
-
-  const handleTreemapClick = (node: any) => {
-    if (node && node.children && node.children.length > 0) {
-        setTreemapBreadcrumbs(prev => [...prev, { name: node.name, data: currentTreemapLevel }]);
-        setCurrentTreemapLevel(node.children);
-    }
-  };
-
-  const handleGoBack = () => {
-    if (treemapBreadcrumbs.length > 0) {
-        const newBreadcrumbs = [...treemapBreadcrumbs];
-        const lastState = newBreadcrumbs.pop();
-        setCurrentTreemapLevel(lastState.data);
-        setTreemapBreadcrumbs(newBreadcrumbs);
-    }
-  };
-
-  const distributionFilteredCalls = useMemo(() => {
-    if (treemapBreadcrumbs.length === 0) {
-      return baseFilteredCalls;
-    }
-    const lastCrumb = treemapBreadcrumbs[treemapBreadcrumbs.length - 1];
-    const selectedNode = lastCrumb.data.find((d: any) => d.name === lastCrumb.name);
-    return selectedNode?.calls || [];
-  }, [treemapBreadcrumbs, baseFilteredCalls]);
 
 
   return (
@@ -577,21 +516,18 @@ export default function Dashboard() {
             <TabsContent value="call-distribution">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Distribution des appels</CardTitle>
-                        <CardDescription>
-                            {treemapBreadcrumbs.length > 0 ? `Chemin: ${treemapBreadcrumbs.map(b => b.name).join(' > ')}` : "Cliquez sur un bloc pour explorer les données."}
-                        </CardDescription>
+                        <CardTitle>Distribution des appels par pays</CardTitle>
+                        <CardDescription>Visualisation de tous les appels répartis par pays.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <ResponsiveContainer width="100%" height={300}>
                             <Treemap
-                                data={currentTreemapLevel}
+                                data={countryDistributionData}
                                 dataKey="size"
                                 aspectRatio={4 / 3}
                                 stroke="hsl(var(--card))"
                                 fill="hsl(var(--primary))"
                                 content={<TreemapContent />}
-                                onClick={handleTreemapClick}
                                 isAnimationActive={false}
                             >
                                 <Tooltip
@@ -605,12 +541,6 @@ export default function Dashboard() {
                                 />
                             </Treemap>
                         </ResponsiveContainer>
-                        {treemapBreadcrumbs.length > 0 && (
-                            <Button variant="outline" onClick={handleGoBack}>
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Monter d'un niveau
-                            </Button>
-                        )}
                         <div>
                             <h3 className="text-xl font-semibold mb-4">
                                 Journal des appels
@@ -623,13 +553,13 @@ export default function Dashboard() {
                                             <TableHead>Date</TableHead>
                                             <TableHead>Time</TableHead>
                                             <TableHead>Caller Number</TableHead>
+                                            <TableHead>Country</TableHead>
                                             <TableHead>Queue/Agent</TableHead>
                                             <TableHead>Status</TableHead>
-                                            <TableHead>Duration</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {distributionFilteredCalls.map(call => {
+                                        {baseFilteredCalls.map(call => {
                                             const outgoing = isOutgoing(call);
                                             return (
                                             <TableRow key={call.call_id}>
@@ -643,9 +573,9 @@ export default function Dashboard() {
                                                 <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
                                                 <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
                                                 <TableCell>{call.calling_number}</TableCell>
+                                                <TableCell>{getCountryFromNumber(call.calling_number)}</TableCell>
                                                 <TableCell>{call.agent || call.queue_name}</TableCell>
                                                 <TableCell>{call.status}</TableCell>
-                                                <TableCell>{call.processing_time_seconds || call.time_in_queue_seconds || 0}s</TableCell>
                                             </TableRow>
                                         )})}
                                     </TableBody>
@@ -660,3 +590,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
