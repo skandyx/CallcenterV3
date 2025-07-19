@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import {
   Phone,
   Clock,
@@ -27,35 +26,29 @@ import {
   ArrowUpCircle,
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from '@/components/ui/skeleton';
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
-import { TreemapContent } from '@/components/treemap-content';
 import { Button } from '@/components/ui/button';
+import { CustomTreemapContent } from '@/components/custom-treemap-content';
+import { Skeleton } from './ui/skeleton';
 
-interface DashboardClientProps {
-  initialCalls: CallData[];
-  initialAdvancedCalls: AdvancedCallData[];
-  initialAgentStatus: AgentStatusData[];
-  initialProfileAvailability: ProfileAvailabilityData[];
-}
-
-export default function DashboardClient({
-    initialCalls,
-    initialAdvancedCalls,
-    initialAgentStatus,
-    initialProfileAvailability
-}: DashboardClientProps) {
-  const [calls, setCalls] = useState<CallData[]>(initialCalls);
-  const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>(initialAdvancedCalls);
-  const [agentStatus, setAgentStatus] = useState<AgentStatusData[]>(initialAgentStatus);
-  const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>(initialProfileAvailability);
+export default function DashboardClient() {
+  const [calls, setCalls] = useState<CallData[]>([]);
+  const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>([]);
+  const [agentStatus, setAgentStatus] = useState<AgentStatusData[]>([]);
+  const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [countryTreemapData, setCountryTreemapData] = useState<any[]>([]);
-  const [treemapLevel, setTreemapLevel] = useState<'direction' | 'country'>('direction');
-  const [selectedDirection, setSelectedDirection] = useState<'Inbound' | 'Outbound' | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  
+  const [simplifiedCallsPage, setSimplifiedCallsPage] = useState(1);
+  const [advancedCallsPage, setAdvancedCallsPage] = useState(1);
+  const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
+  const [agentStatusPage, setAgentStatusPage] = useState(1);
+  const [statusAnalysisPage, setStatusAnalysisPage] = useState(1);
+  const [distributionPage, setDistributionPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 10;
 
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
@@ -68,6 +61,7 @@ export default function DashboardClient({
 
   const fetchData = async () => {
     try {
+      setLoading(true);
       const response = await fetch('/api/data');
       if (!response.ok) {
         throw new Error('Failed to fetch data');
@@ -79,10 +73,13 @@ export default function DashboardClient({
       setProfileAvailability(data.profileAvailability || []);
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+        setLoading(false);
     }
   }
 
   useEffect(() => {
+    fetchData(); // Initial fetch
     const interval = setInterval(fetchData, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval); // Cleanup on component unmount
   }, []);
@@ -94,10 +91,10 @@ export default function DashboardClient({
 
   const isOutgoing = (call: CallData | AdvancedCallData) => call.status_detail === 'Outgoing';
 
-  const filteredCalls = filterByDate(calls, 'enter_datetime');
-  const filteredAdvancedCalls = filterByDate(advancedCalls, 'enter_datetime');
-  const filteredAgentStatus = filterByDate(agentStatus, 'date');
-  const filteredProfileAvailability = filterByDate(profileAvailability, 'date');
+  const filteredCalls = useMemo(() => filterByDate(calls, 'enter_datetime'), [calls, selectedDate]);
+  const filteredAdvancedCalls = useMemo(() => filterByDate(advancedCalls, 'enter_datetime'), [advancedCalls, selectedDate]);
+  const filteredAgentStatus = useMemo(() => filterByDate(agentStatus, 'date'), [agentStatus, selectedDate]);
+  const filteredProfileAvailability = useMemo(() => filterByDate(profileAvailability, 'date'), [profileAvailability, selectedDate]);
 
   const totalCalls = filteredCalls.length;
   const answeredCalls = filteredCalls.filter((c) => c.status !== "Abandoned").length;
@@ -106,17 +103,6 @@ export default function DashboardClient({
   const serviceLevel10s = (filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 10).length / totalCalls) * 100 || 0;
   const serviceLevel30s = (filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
-  
-  const statusAnalysis = filteredCalls.reduce((acc, call) => {
-    const status = call.status_detail || call.status;
-    if (!acc[status]) {
-      acc[status] = { count: 0, totalWait: 0, totalTalk: 0 };
-    }
-    acc[status].count++;
-    acc[status].totalWait += call.time_in_queue_seconds || 0;
-    acc[status].totalTalk += call.talk_time_seconds || 0;
-    return acc;
-  }, {} as Record<string, { count: number, totalWait: number, totalTalk: number }>);
 
   const getCountryFromNumber = (phoneNumber: string) => {
     if (!phoneNumber) return 'Unknown';
@@ -125,68 +111,16 @@ export default function DashboardClient({
     if (phoneNumber.startsWith('00216')) return 'Tunisia';
     return 'Other';
   };
+  
+  const countryDistributionData = useMemo(() => {
+    const counts = filteredCalls.reduce((acc, call) => {
+      const country = getCountryFromNumber(call.calling_number);
+      acc[country] = (acc[country] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  useEffect(() => {
-      const directionData = filteredCalls.reduce((acc, call) => {
-          const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
-          if (!acc[direction]) {
-              acc[direction] = { name: direction, children: [] };
-          }
-
-          const country = getCountryFromNumber(call.calling_number);
-          let countryNode = acc[direction].children.find((child: any) => child.name === country);
-
-          if (!countryNode) {
-              countryNode = { name: country, size: 0 };
-              acc[direction].children.push(countryNode);
-          }
-          countryNode.size++;
-
-          return acc;
-      }, {} as Record<string, { name: string; children: { name: string; size: number }[] }>);
-
-      setCountryTreemapData(Object.values(directionData));
+    return Object.entries(counts).map(([name, size]) => ({ name, size }));
   }, [filteredCalls]);
-
-  const handleTreemapClick = (data: any) => {
-      if (treemapLevel === 'direction') {
-          setSelectedDirection(data.name);
-          setTreemapLevel('country');
-      } else if (treemapLevel === 'country') {
-          setSelectedCountry(data.name);
-      }
-  };
-
-  const handleBackClick = () => {
-      if (treemapLevel === 'country') {
-          setSelectedCountry(null);
-          setSelectedDirection(null);
-          setTreemapLevel('direction');
-      }
-  };
-
-  const treemapDataToDisplay = useMemo(() => {
-      if (treemapLevel === 'direction') {
-          return countryTreemapData.map(item => ({ name: item.name, size: item.children.reduce((sum: number, child: any) => sum + child.size, 0) }));
-      } else if (treemapLevel === 'country' && selectedDirection) {
-          const directionNode = countryTreemapData.find(item => item.name === selectedDirection);
-          return directionNode ? directionNode.children : [];
-      }
-      return [];
-  }, [countryTreemapData, treemapLevel, selectedDirection]);
-
-  const distributionFilteredCalls = useMemo(() => {
-      let filtered = filteredCalls;
-
-      if (selectedDirection) {
-          filtered = filtered.filter(call => (isOutgoing(call) ? 'Outbound' : 'Inbound') === selectedDirection);
-      }
-      if (selectedCountry) {
-          filtered = filtered.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry);
-      }
-      return filtered;
-  }, [filteredCalls, selectedDirection, selectedCountry]);
-
 
   const statusTreemapData = React.useMemo(() => {
     return Object.values(
@@ -203,12 +137,73 @@ export default function DashboardClient({
 
   const handleStatusClick = (statusName: string) => {
     setSelectedStatus(prev => (prev === statusName ? null : statusName));
+    setStatusAnalysisPage(1);
   };
 
   const statusFilteredCalls = selectedStatus
     ? filteredCalls.filter(call => (call.status === selectedStatus || call.status_detail === selectedStatus))
     : filteredCalls;
 
+
+  // Pagination Logic
+  const paginate = (data: any[], page: number) => {
+      const startIndex = (page - 1) * ITEMS_PER_PAGE;
+      return data.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  };
+
+  const paginatedSimplifiedCalls = paginate(filteredCalls, simplifiedCallsPage);
+  const paginatedAdvancedCalls = paginate(filteredAdvancedCalls, advancedCallsPage);
+  const paginatedProfileAvailability = paginate(filteredProfileAvailability, profileAvailabilityPage);
+  const paginatedAgentStatus = paginate(filteredAgentStatus, agentStatusPage);
+  const paginatedStatusAnalysisCalls = paginate(statusFilteredCalls, statusAnalysisPage);
+  const paginatedDistributionCalls = paginate(filteredCalls, distributionPage);
+
+  const renderPaginationControls = (dataLength: number, page: number, setPage: (page: number) => void) => {
+      const totalPages = Math.ceil(dataLength / ITEMS_PER_PAGE);
+      if (totalPages <= 1) return null;
+
+      return (
+          <div className="flex items-center justify-end space-x-2 py-4">
+              <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+              >
+                  Précédent
+              </Button>
+              <span className="text-sm">
+                  Page {page} sur {totalPages}
+              </span>
+              <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page >= totalPages}
+              >
+                  Suivant
+              </Button>
+          </div>
+      );
+  };
+  
+  if (loading) {
+      return (
+          <div className="flex flex-col">
+              <PageHeader title="Dashboard" />
+              <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                      <Skeleton className="h-24" />
+                      <Skeleton className="h-24" />
+                      <Skeleton className="h-24" />
+                      <Skeleton className="h-24" />
+                      <Skeleton className="h-24" />
+                  </div>
+                  <Skeleton className="h-[600px]" />
+              </main>
+          </div>
+      );
+  }
 
   return (
     <div className="flex flex-col">
@@ -268,20 +263,6 @@ export default function DashboardClient({
                         <CardDescription>Une ligne pour chaque appel. Recommandé pour Power BI.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex items-center gap-4 mb-4">
-                            <Input placeholder="Filter across all columns..." className="max-w-sm" />
-                             <Select>
-                                <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="All Statuses" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Statuses</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="abandoned">Abandoned</SelectItem>
-                                    <SelectItem value="missed">Missed</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
                         <Table>
                         <TableHeader>
                             <TableRow>
@@ -296,7 +277,7 @@ export default function DashboardClient({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredCalls.map((call) => {
+                            {paginatedSimplifiedCalls.map((call) => {
                                 const callDate = new Date(call.enter_datetime);
                                 return (
                                 <TableRow key={call.call_id}>
@@ -316,6 +297,7 @@ export default function DashboardClient({
                             )})}
                         </TableBody>
                         </Table>
+                         {renderPaginationControls(filteredCalls.length, simplifiedCallsPage, setSimplifiedCallsPage)}
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -326,7 +308,6 @@ export default function DashboardClient({
                         <CardDescription>Plus précis que « Données d'appel simplifiées ». Chaque appel peut être détaillé sur plusieurs lignes.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Input placeholder="Filter across all columns..." className="max-w-sm mb-4" />
                         <Table>
                         <TableHeader>
                             <TableRow>
@@ -340,7 +321,7 @@ export default function DashboardClient({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredAdvancedCalls.map((call, index) => (
+                            {paginatedAdvancedCalls.map((call, index) => (
                                 <TableRow key={`${call.call_id}-${index}`}>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
                                     <TableCell>{call.call_id}</TableCell>
@@ -353,6 +334,7 @@ export default function DashboardClient({
                             ))}
                         </TableBody>
                         </Table>
+                         {renderPaginationControls(filteredAdvancedCalls.length, advancedCallsPage, setAdvancedCallsPage)}
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -377,7 +359,7 @@ export default function DashboardClient({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredProfileAvailability.map((profile, index) => (
+                      {paginatedProfileAvailability.map((profile, index) => (
                         <TableRow key={`${profile.user_id}-${profile.hour}-${index}`}>
                           <TableCell>{profile.user}</TableCell>
                           <TableCell>{profile.email}</TableCell>
@@ -389,6 +371,7 @@ export default function DashboardClient({
                       ))}
                     </TableBody>
                   </Table>
+                   {renderPaginationControls(filteredProfileAvailability.length, profileAvailabilityPage, setProfileAvailabilityPage)}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -413,7 +396,7 @@ export default function DashboardClient({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredAgentStatus.map((status, index) => (
+                      {paginatedAgentStatus.map((status, index) => (
                         <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
                           <TableCell>{status.user}</TableCell>
                           <TableCell>{status.email}</TableCell>
@@ -425,176 +408,132 @@ export default function DashboardClient({
                       ))}
                     </TableBody>
                   </Table>
+                  {renderPaginationControls(filteredAgentStatus.length, agentStatusPage, setAgentStatusPage)}
                 </CardContent>
               </Card>
             </TabsContent>
             <TabsContent value="status-analysis">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Analyse par statut</CardTitle>
-                  <CardDescription>
-                    Cliquez sur un statut dans le graphique pour filtrer le journal des appels.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-8">
-                  <ResponsiveContainer width="100%" height={250}>
-                    <Treemap
-                      data={statusTreemapData}
-                      dataKey="size"
-                      stroke="hsl(var(--card))"
-                      fill="hsl(var(--primary))"
-                      isAnimationActive={false}
-                      content={<TreemapContent />}
-                      onClick={(data) => handleStatusClick(data.name)}
-                    >
-                       <Tooltip
-                          labelFormatter={(name) => name}
-                          formatter={(value: any, name: any, props: any) => [`${value} calls`, props.payload.name]}
-                          cursor={{ fill: 'hsl(var(--muted))' }}
-                          contentStyle={{
-                              background: 'hsl(var(--background))',
-                              borderColor: 'hsl(var(--border))',
-                              borderRadius: 'var(--radius)',
-                          }}
-                      />
-                    </Treemap>
-                  </ResponsiveContainer>
-                   <div>
-                    <h3 className="text-xl font-semibold mb-4">
-                        Journal des appels {selectedStatus && ` - ${selectedStatus}`}
-                    </h3>
-                     <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Direction</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Time</TableHead>
-                                <TableHead>Caller</TableHead>
-                                <TableHead>Queue</TableHead>
-                                <TableHead>Wait Time</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Status Detail</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {statusFilteredCalls.map((call) => {
-                                const callDate = new Date(call.enter_datetime);
-                                const outgoing = isOutgoing(call);
-                                return (
-                                <TableRow key={call.call_id}>
-                                    <TableCell>
-                                        {outgoing ? (
-                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
-                                        ) : (
-                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{callDate.toLocaleDateString()}</TableCell>
-                                    <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
-                                    <TableCell>{call.calling_number}</TableCell>
-                                    <TableCell>{call.queue_name}</TableCell>
-                                    <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
-                                    <TableCell>
-                                        <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
-                                            {call.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{call.status_detail}</TableCell>
-                                </TableRow>
-                            )})}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Analyse par statut</CardTitle>
+                        <CardDescription>
+                        Cliquez sur un statut dans le graphique pour filtrer le journal des appels.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="md:col-span-1">
+                            <ResponsiveContainer width="100%" height={500}>
+                                <Treemap
+                                data={statusTreemapData}
+                                dataKey="size"
+                                type="squarify"
+                                stroke="hsl(var(--card))"
+                                fill="hsl(var(--primary))"
+                                content={<CustomTreemapContent />}
+                                onClick={(data) => handleStatusClick(data.name)}
+                                />
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="md:col-span-1">
+                            <h3 className="text-xl font-semibold mb-4">
+                                Journal des appels {selectedStatus && ` - ${selectedStatus}`}
+                            </h3>
+                            <div className="border rounded-lg">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Direction</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Caller</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paginatedStatusAnalysisCalls.map((call) => {
+                                        const callDate = new Date(call.enter_datetime);
+                                        const outgoing = isOutgoing(call);
+                                        return (
+                                        <TableRow key={call.call_id}>
+                                            <TableCell>
+                                                {outgoing ? (
+                                                    <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                                ) : (
+                                                    <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                                )}
+                                            </TableCell>
+                                            <TableCell>{callDate.toLocaleDateString()}</TableCell>
+                                            <TableCell>{call.calling_number}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
+                                                    {call.status}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    )})}
+                                </TableBody>
+                            </Table>
+                            </div>
+                            {renderPaginationControls(statusFilteredCalls.length, statusAnalysisPage, setStatusAnalysisPage)}
+                        </div>
+                    </CardContent>
+                </Card>
             </TabsContent>
             <TabsContent value="call-distribution">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Distribution des appels par pays</CardTitle>
-                  <CardDescription>
-                    {treemapLevel === 'direction' ? 'Cliquez sur une direction pour afficher les pays.' : 'Cliquez sur un pays pour filtrer le journal des appels.'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     {treemapLevel === 'country' && selectedDirection && (
-                        <Button onClick={handleBackClick} variant="outline" size="sm">
-                           Retour à {selectedDirection}
-                        </Button>
-                     )}
-                    <ResponsiveContainer width="100%" height={300}>
-                        <Treemap
-                            data={treemapDataToDisplay}
-                            dataKey={treemapLevel === 'direction' ? 'size' : 'size'}
-                            aspectRatio={4 / 3}
-                            stroke="hsl(var(--card))"
-                            fill="hsl(var(--primary))"
-                            content={<TreemapContent />}
-                            isAnimationActive={false}
-                            onClick={(data) => handleTreemapClick(data)}
-                        >
-                            <Tooltip
-                                formatter={(value: any, name: any) => [value, 'calls']}
-                                cursor={{fill: 'hsl(var(--muted))'}}
-                                contentStyle={{
-                                    background: 'hsl(var(--background))',
-                                    borderColor: 'hsl(var(--border))',
-                                    borderRadius: 'var(--radius)',
-                                }}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Distribution des appels par pays</CardTitle>
+                        <CardDescription>Visualisation de tous les appels répartis par pays.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={400}>
+                             <Treemap
+                                data={countryDistributionData}
+                                dataKey="size"
+                                type="squarify"
+                                stroke="hsl(var(--card))"
+                                fill="hsl(var(--primary))"
+                                isAnimationActive={false}
+                                content={<CustomTreemapContent />}
                             />
-                        </Treemap>
-                    </ResponsiveContainer>
-
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">
-                        Journal des appels {selectedDirection && ` - ${selectedDirection}`}{selectedCountry && ` - ${selectedCountry}`}
-                    </h3>
-                    <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Direction</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Time</TableHead>
-                            <TableHead>Caller Number</TableHead>
-                            <TableHead>Country</TableHead>
-                            <TableHead>Queue/Agent</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {distributionFilteredCalls.map(call => {
-                                const outgoing = isOutgoing(call);
-                                return (
-                                <TableRow key={call.call_id}>
-                                     <TableCell>
-                                        {outgoing ? (
-                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
-                                        ) : (
-                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
-                                    <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
-                                    <TableCell>{call.calling_number}</TableCell>
-                                    <TableCell>{getCountryFromNumber(call.calling_number)}</TableCell>
-                                    <TableCell>{call.agent || call.queue_name}</TableCell>
-                                    <TableCell>{call.status}</TableCell>
-                                </TableRow>
-                            )})}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                        </ResponsiveContainer>
+                        <div className="mt-4 border rounded-lg">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Direction</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Caller Number</TableHead>
+                                        <TableHead>Country</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paginatedDistributionCalls.map(call => {
+                                        const outgoing = isOutgoing(call);
+                                        return (
+                                        <TableRow key={call.call_id}>
+                                            <TableCell>
+                                                {outgoing ? (
+                                                    <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                                ) : (
+                                                    <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                                )}
+                                            </TableCell>
+                                            <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
+                                            <TableCell>{call.calling_number}</TableCell>
+                                            <TableCell>{getCountryFromNumber(call.calling_number)}</TableCell>
+                                            <TableCell>{call.status}</TableCell>
+                                        </TableRow>
+                                    )})}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        {renderPaginationControls(filteredCalls.length, distributionPage, setDistributionPage)}
+                    </CardContent>
+                </Card>
             </TabsContent>
         </Tabs>
-
       </main>
     </div>
   );
 }
-
