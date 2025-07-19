@@ -120,17 +120,17 @@ export default function Dashboard({
     return 'Other';
   };
 
-  const statusTreemapData = Object.values(
-    baseFilteredCalls.reduce((acc, call) => {
+  const statusTreemapData = React.useMemo(() => {
+    return Object.values(baseFilteredCalls.reduce((acc, call) => {
       const detailStatus = call.status_detail || call.status || 'N/A';
-  
       if (!acc[detailStatus]) {
         acc[detailStatus] = { name: detailStatus, size: 0 };
       }
       acc[detailStatus].size++;
       return acc;
-    }, {} as Record<string, { name: string; size: number }>)
-  );
+    }, {} as Record<string, { name: string; size: number }>));
+  }, [baseFilteredCalls]);
+
 
   const handleStatusClick = (statusName: string) => {
     setSelectedStatus(prev => (prev === statusName ? null : statusName));
@@ -177,7 +177,7 @@ export default function Dashboard({
     );
   });
 
-  const distributionTreemapData = React.useMemo(() => {
+ const distributionTreemapData = React.useMemo(() => {
     const data = baseFilteredCalls.reduce((acc, call) => {
         const type = isOutgoing(call) ? 'Outbound' : 'Inbound';
         const country = getCountryFromNumber(call.calling_number);
@@ -185,7 +185,7 @@ export default function Dashboard({
         if (!acc[type]) {
             acc[type] = { name: type, children: {} };
         }
-        if (country !== 'Unknown') {
+        if (country !== 'Other' && country !== 'Unknown') {
           if (!acc[type].children[country]) {
               acc[type].children[country] = { name: country, value: 0 };
           }
