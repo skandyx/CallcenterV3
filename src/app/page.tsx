@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type {
   CallData, AdvancedCallData, AgentStatusData, ProfileAvailabilityData
 } from "@/types";
@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { TreemapContent } from '@/components/treemap-content';
+import { Button } from '@/components/ui/button';
 
 interface DashboardProps {
   initialCalls: CallData[];
@@ -50,8 +51,10 @@ export default function Dashboard({
   const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>(initialProfileAvailability || []);
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+
+  // State for the distribution treemap
+  const [distributionFilter, setDistributionFilter] = useState<{ type: string | null, country: string | null }>({ type: null, country: null });
 
   // Filter states for each tab
   const [simplifiedCallsFilter, setSimplifiedCallsFilter] = useState('');
@@ -107,41 +110,16 @@ export default function Dashboard({
   const serviceLevel30s = (baseFilteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
 
+  const isOutgoing = (call: CallData | AdvancedCallData) => call.status_detail === 'Outgoing';
+
   const getCountryFromNumber = (phoneNumber: string) => {
     if (!phoneNumber) return 'Unknown';
     if (phoneNumber.startsWith('0032')) return 'Belgium';
     if (phoneNumber.startsWith('0033')) return 'France';
     if (phoneNumber.startsWith('00216')) return 'Tunisia';
-    return 'Unknown';
+    return 'Other';
   };
 
-  const countryData = baseFilteredCalls.reduce((acc, call) => {
-      const country = getCountryFromNumber(call.calling_number);
-      if (country !== 'Unknown') {
-          if (!acc[country]) {
-              acc[country] = { name: country, value: 0, color: '' };
-          }
-          acc[country].value++;
-      }
-      return acc;
-  }, {} as Record<string, { name: string; value: number, color: string }>);
-
-  const countryColors = ['bg-indigo-400', 'bg-green-400', 'bg-yellow-400', 'bg-red-400', 'bg-blue-400'];
-  const countryDataArray = Object.values(countryData).map((country, index) => ({
-      ...country,
-      color: countryColors[index % countryColors.length],
-  }));
-
-  const totalCountryCalls = countryDataArray.reduce((acc, country) => acc + country.value, 0);
-
-  const handleCountryClick = (countryName: string) => {
-    setSelectedCountry(prev => (prev === countryName ? null : countryName));
-  };
-
-  const distributionFilteredCalls = selectedCountry
-    ? baseFilteredCalls.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry)
-    : baseFilteredCalls;
-    
   const statusTreemapData = Object.values(
     baseFilteredCalls.reduce((acc, call) => {
       const detailStatus = call.status_detail || call.status || 'N/A';
@@ -199,7 +177,55 @@ export default function Dashboard({
     );
   });
 
-  const isOutgoing = (call: CallData | AdvancedCallData) => call.status_detail === 'Outgoing';
+  const distributionTreemapData = React.useMemo(() => {
+    const data = baseFilteredCalls.reduce((acc, call) => {
+        const type = isOutgoing(call) ? 'Outbound' : 'Inbound';
+        const country = getCountryFromNumber(call.calling_number);
+
+        if (!acc[type]) {
+            acc[type] = { name: type, children: {} };
+        }
+        if (country !== 'Unknown') {
+          if (!acc[type].children[country]) {
+              acc[type].children[country] = { name: country, value: 0 };
+          }
+          acc[type].children[country].value++;
+        }
+        return acc;
+    }, {} as Record<string, { name: string; children: Record<string, { name: string, value: number }> }>);
+
+    return Object.values(data).map(type => ({
+      name: type.name,
+      children: Object.values(type.children),
+      size: Object.values(type.children).reduce((sum, child) => sum + child.value, 0)
+    }));
+  }, [baseFilteredCalls]);
+
+  const handleDistributionClick = (data: any) => {
+    if (data.depth === 1) { // Clicked on Inbound/Outbound
+      setDistributionFilter(prev => ({
+        type: prev.type === data.name ? null : data.name,
+        country: null,
+      }));
+    } else if (data.depth === 2) { // Clicked on a country
+      setDistributionFilter(prev => ({
+        type: prev.type,
+        country: prev.country === data.name ? null : data.name,
+      }));
+    }
+  };
+  
+  const distributionFilteredCalls = baseFilteredCalls.filter(call => {
+    if (!distributionFilter.type) return true;
+    const callType = isOutgoing(call) ? 'Outbound' : 'Inbound';
+    if (callType !== distributionFilter.type) return false;
+    if (!distributionFilter.country) return true;
+    return getCountryFromNumber(call.calling_number) === distributionFilter.country;
+  });
+
+  const treemapDisplayData = distributionFilter.type
+      ? distributionTreemapData.find(d => d.name === distributionFilter.type)?.children || []
+      : distributionTreemapData;
 
 
   return (
@@ -549,68 +575,83 @@ export default function Dashboard({
             <TabsContent value="call-distribution">
               <Card>
                 <CardHeader>
-                  <CardTitle>Distribution des appels par pays</CardTitle>
-                  <CardDescription>Cliquez sur un pays pour filtrer le journal des appels.</CardDescription>
+                    <CardTitle>Distribution des appels</CardTitle>
+                    <CardDescription>
+                        Cliquez pour filtrer par type (entrant/sortant) puis par pays.
+                        {distributionFilter.type && (
+                            <Button variant="link" size="sm" onClick={() => setDistributionFilter({ type: null, country: null })}>
+                                Réinitialiser la vue
+                            </Button>
+                        )}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-8">
-                  <div className="w-full h-48 flex rounded-lg overflow-hidden">
-                    {countryDataArray.length > 0 ? countryDataArray.map(country => (
-                      <div
-                        key={country.name}
-                        className={`${country.color} flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:opacity-90 transition-opacity ${selectedCountry === country.name ? 'ring-4 ring-offset-2 ring-blue-500' : ''}`}
-                        style={{ width: `${(country.value / totalCountryCalls) * 100}%` }}
-                        onClick={() => handleCountryClick(country.name)}
-                      >
-                       {country.name} ({country.value})
-                      </div>
-                    )) : (
-                      <div className="flex items-center justify-center w-full h-full bg-muted text-muted-foreground">
-                        Aucune donnée de pays à afficher
-                      </div>
-                    )}
-                  </div>
+                    <ResponsiveContainer width="100%" height={250}>
+                        <Treemap
+                            data={treemapDisplayData}
+                            dataKey={distributionFilter.type ? "value" : "size"}
+                            stroke="hsl(var(--card))"
+                            fill="hsl(var(--primary))"
+                            isAnimationActive={false}
+                            content={<TreemapContent />}
+                            onClick={handleDistributionClick}
+                        >
+                            <Tooltip
+                                labelFormatter={(name) => name}
+                                formatter={(value: any, name: any, props: any) => [`${value} calls`, props.payload.name]}
+                                cursor={{ fill: 'hsl(var(--muted))' }}
+                                contentStyle={{
+                                    background: 'hsl(var(--background))',
+                                    borderColor: 'hsl(var(--border))',
+                                    borderRadius: 'var(--radius)',
+                                }}
+                            />
+                        </Treemap>
+                    </ResponsiveContainer>
 
-                  <div>
-                    <h3 className="text-xl font-semibold mb-4">
-                        Journal des appels {selectedCountry && ` - ${selectedCountry}`}
-                    </h3>
-                    <div className="border rounded-lg">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Direction</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Time</TableHead>
-                            <TableHead>Caller Number</TableHead>
-                            <TableHead>Queue</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Duration</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {distributionFilteredCalls.map(call => {
-                                const outgoing = isOutgoing(call);
-                                return (
-                                <TableRow key={call.call_id}>
-                                    <TableCell>
-                                        {outgoing ? (
-                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
-                                        ) : (
-                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
-                                    <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
-                                    <TableCell>{call.calling_number}</TableCell>
-                                    <TableCell>{call.queue_name}</TableCell>
-                                    <TableCell>{call.status}</TableCell>
-                                    <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
-                                </TableRow>
-                            )})}
-                        </TableBody>
-                      </Table>
+                    <div>
+                        <h3 className="text-xl font-semibold mb-4">
+                            Journal des appels
+                            {distributionFilter.type && ` - ${distributionFilter.type}`}
+                            {distributionFilter.country && ` / ${distributionFilter.country}`}
+                        </h3>
+                        <div className="border rounded-lg">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Direction</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Time</TableHead>
+                                        <TableHead>Caller Number</TableHead>
+                                        <TableHead>Queue</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Duration</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {distributionFilteredCalls.map(call => {
+                                        const outgoing = isOutgoing(call);
+                                        return (
+                                        <TableRow key={call.call_id}>
+                                            <TableCell>
+                                                {outgoing ? (
+                                                    <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                                ) : (
+                                                    <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                                )}
+                                            </TableCell>
+                                            <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
+                                            <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
+                                            <TableCell>{call.calling_number}</TableCell>
+                                            <TableCell>{call.queue_name}</TableCell>
+                                            <TableCell>{call.status}</TableCell>
+                                            <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
+                                        </TableRow>
+                                    )})}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -620,5 +661,3 @@ export default function Dashboard({
     </div>
   );
 }
-
-    
