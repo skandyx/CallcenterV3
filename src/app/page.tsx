@@ -164,55 +164,66 @@ export default function Dashboard() {
   });
 
   const distributionTreemapData = React.useMemo(() => {
-    const hierarchy: Record<string, any> = { name: "Calls", children: [] };
+    const hierarchy: any = { name: "Calls", children: [] };
     const directionMap: Record<string, any> = { Inbound: { name: "Inbound", children: [] }, Outbound: { name: "Outbound", children: [] } };
-    
+  
     baseFilteredCalls.forEach(call => {
-        const direction = isOutgoing(call) ? "Outbound" : "Inbound";
-        const country = getCountryFromNumber(call.calling_number);
-        if (country === 'Unknown' || country === 'Other') return;
-        
-        const leaf = call.agent || call.queue_name || 'N/A';
-        
-        let countryNode = directionMap[direction].children.find((c: any) => c.name === country);
-        if (!countryNode) {
-            countryNode = { name: country, children: [] };
-            directionMap[direction].children.push(countryNode);
-        }
-        
-        let leafNode = countryNode.children.find((l: any) => l.name === leaf);
-        if (!leafNode) {
-            leafNode = { name: leaf, value: 0 };
-            countryNode.children.push(leafNode);
-        }
-        leafNode.value++;
+      const direction = isOutgoing(call) ? "Outbound" : "Inbound";
+      const country = getCountryFromNumber(call.calling_number);
+      if (country === 'Unknown' || country === 'Other') return;
+      const leafName = call.agent?.trim() || call.queue_name?.trim() || 'N/A';
+      if (leafName === 'N/A') return;
+  
+      let directionNode = directionMap[direction];
+      
+      let countryNode = directionNode.children.find((c: any) => c.name === country);
+      if (!countryNode) {
+        countryNode = { name: country, children: [] };
+        directionNode.children.push(countryNode);
+      }
+      
+      let leafNode = countryNode.children.find((l: any) => l.name === leafName);
+      if (!leafNode) {
+        leafNode = { name: leafName, value: 0 };
+        countryNode.children.push(leafNode);
+      }
+      leafNode.value++;
     });
-
+  
+    // Add value properties to country and direction nodes by summing up children
+    Object.values(directionMap).forEach(directionNode => {
+      directionNode.children.forEach((countryNode: any) => {
+        countryNode.value = countryNode.children.reduce((acc: number, leaf: any) => acc + leaf.value, 0);
+      });
+      directionNode.value = directionNode.children.reduce((acc: number, country: any) => acc + country.value, 0);
+    });
+  
     hierarchy.children.push(directionMap.Inbound, directionMap.Outbound);
     return hierarchy;
   }, [baseFilteredCalls]);
-
+  
   const handleDistributionClick = (data: any) => {
-    if (data && data.depth < 3) { // Max depth is 3 (Root -> Direction -> Country -> Agent/Queue)
-      setDistributionPath(prev => [...prev, data.name]);
+    if (data && data.depth < 3) {
+      if (data.depth === 1) setDistributionPath([data.name]);
+      if (data.depth === 2) setDistributionPath(prev => [prev[0], data.name]);
     }
   };
-  
+
   const resetDistributionPath = () => {
     setDistributionPath([]);
   }
 
   const getVisibleTreemapData = () => {
-      if (!distributionTreemapData) return [];
-      let currentLevel: any = distributionTreemapData;
-      for (const key of distributionPath) {
-          currentLevel = currentLevel?.children?.find((node: any) => node.name === key);
-      }
-      return currentLevel?.children || [];
+    if (!distributionTreemapData) return [];
+    let currentLevel: any = distributionTreemapData;
+    for (const key of distributionPath) {
+      currentLevel = currentLevel?.children?.find((node: any) => node.name === key);
+    }
+    return currentLevel?.children || [];
   };
-  
+
   const visibleTreemapData = getVisibleTreemapData();
-  
+
   const distributionFilteredCalls = baseFilteredCalls.filter(call => {
     if (distributionPath.length === 0) return true;
     
@@ -594,7 +605,7 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent className="space-y-8">
                         <ResponsiveContainer width="100%" height={250}>
-                            <Treemap
+                             <Treemap
                                 data={visibleTreemapData}
                                 dataKey="value"
                                 nameKey="name"
@@ -603,7 +614,7 @@ export default function Dashboard() {
                                 isAnimationActive={false}
                                 content={<TreemapContent />}
                                 onClick={handleDistributionClick}
-                            >
+                              >
                                 <Tooltip
                                     labelFormatter={(name) => name}
                                     formatter={(value: any, name: any, props: any) => [`${value} calls`, props.payload.name]}
@@ -666,4 +677,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
