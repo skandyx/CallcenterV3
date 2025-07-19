@@ -46,10 +46,18 @@ export default function Dashboard({
   const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>(initialAdvancedCalls || []);
   const [agentStatus, setAgentStatus] = useState<AgentStatusData[]>(initialAgentStatus || []);
   const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>(initialProfileAvailability || []);
+  
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [profileFilter, setProfileFilter] = useState('');
+
+  // Filter states for each tab
+  const [simplifiedCallsFilter, setSimplifiedCallsFilter] = useState('');
+  const [simplifiedCallsStatusFilter, setSimplifiedCallsStatusFilter] = useState('all');
+  const [advancedCallsFilter, setAdvancedCallsFilter] = useState('');
+  const [profileAvailabilityFilter, setProfileAvailabilityFilter] = useState('');
+  const [agentConnectionsFilter, setAgentConnectionsFilter] = useState('');
+
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -84,17 +92,17 @@ export default function Dashboard({
     return items.filter(item => new Date(item[dateKey]).toDateString() === selectedDate.toDateString());
   }
 
-  const filteredCalls = filterByDate(calls, 'enter_datetime');
-  const filteredAdvancedCalls = filterByDate(advancedCalls, 'enter_datetime');
-  const filteredAgentStatus = filterByDate(agentStatus, 'date');
-  const filteredProfileAvailability = filterByDate(profileAvailability, 'date');
+  const baseFilteredCalls = filterByDate(calls, 'enter_datetime');
+  const baseFilteredAdvancedCalls = filterByDate(advancedCalls, 'enter_datetime');
+  const baseFilteredAgentStatus = filterByDate(agentStatus, 'date');
+  const baseFilteredProfileAvailability = filterByDate(profileAvailability, 'date');
 
-  const totalCalls = filteredCalls.length;
-  const answeredCalls = filteredCalls.filter((c) => c.status !== "Abandoned").length;
-  const avgWaitTime = filteredCalls.reduce((acc, c) => acc + (c.time_in_queue_seconds || 0), 0) / totalCalls || 0;
+  const totalCalls = baseFilteredCalls.length;
+  const answeredCalls = baseFilteredCalls.filter((c) => c.status !== "Abandoned").length;
+  const avgWaitTime = baseFilteredCalls.reduce((acc, c) => acc + (c.time_in_queue_seconds || 0), 0) / totalCalls || 0;
   
-  const serviceLevel10s = (filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 10).length / totalCalls) * 100 || 0;
-  const serviceLevel30s = (filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length / totalCalls) * 100 || 0;
+  const serviceLevel10s = (baseFilteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 10).length / totalCalls) * 100 || 0;
+  const serviceLevel30s = (baseFilteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
 
   const getCountryFromNumber = (phoneNumber: string) => {
@@ -105,7 +113,7 @@ export default function Dashboard({
     return 'Unknown';
   };
 
-  const countryData = filteredCalls.reduce((acc, call) => {
+  const countryData = baseFilteredCalls.reduce((acc, call) => {
       const country = getCountryFromNumber(call.calling_number);
       if (country !== 'Unknown') {
           if (!acc[country]) {
@@ -129,11 +137,11 @@ export default function Dashboard({
   };
 
   const distributionFilteredCalls = selectedCountry
-    ? filteredCalls.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry)
-    : filteredCalls;
+    ? baseFilteredCalls.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry)
+    : baseFilteredCalls;
     
   const statusTreemapData = Object.values(
-    filteredCalls.reduce((acc, call) => {
+    baseFilteredCalls.reduce((acc, call) => {
       const detailStatus = call.status_detail || call.status || 'N/A';
   
       if (!acc[detailStatus]) {
@@ -149,17 +157,45 @@ export default function Dashboard({
   };
 
   const statusFilteredCalls = selectedStatus
-    ? filteredCalls.filter(call => (call.status === selectedStatus || call.status_detail === selectedStatus))
-    : filteredCalls;
+    ? baseFilteredCalls.filter(call => (call.status === selectedStatus || call.status_detail === selectedStatus))
+    : baseFilteredCalls;
 
-  const additionallyFilteredProfileAvailability = filteredProfileAvailability.filter(profile => {
-    const searchTerm = profileFilter.toLowerCase();
+  // Fully filtered data for tables
+  const filteredSimplifiedCalls = baseFilteredCalls.filter(call => {
+    const searchTerm = simplifiedCallsFilter.toLowerCase();
+    const statusMatch = simplifiedCallsStatusFilter === 'all' || call.status === simplifiedCallsStatusFilter;
+    if (!statusMatch) return false;
+
+    return Object.values(call).some(val => 
+        String(val).toLowerCase().includes(searchTerm)
+    );
+  });
+
+  const filteredAdvancedCalls = baseFilteredAdvancedCalls.filter(call => {
+      const searchTerm = advancedCallsFilter.toLowerCase();
+      return Object.values(call).some(val => 
+          String(val).toLowerCase().includes(searchTerm)
+      );
+  });
+
+  const filteredProfileAvailability = baseFilteredProfileAvailability.filter(profile => {
+    const searchTerm = profileAvailabilityFilter.toLowerCase();
     return (
         profile.user.toLowerCase().includes(searchTerm) ||
         profile.email.toLowerCase().includes(searchTerm) ||
         new Date(profile.date).toLocaleDateString().toLowerCase().includes(searchTerm)
     );
   });
+
+  const filteredAgentConnections = baseFilteredAgentStatus.filter(status => {
+    const searchTerm = agentConnectionsFilter.toLowerCase();
+    return (
+        status.user.toLowerCase().includes(searchTerm) ||
+        status.email.toLowerCase().includes(searchTerm) ||
+        status.queuename.toLowerCase().includes(searchTerm)
+    );
+  });
+
 
   return (
     <div className="flex flex-col">
@@ -184,14 +220,14 @@ export default function Dashboard({
             title="Service Level (<10s)"
             value={`${serviceLevel10s.toFixed(1)}%`}
             icon={<Zap className="h-4 w-4 text-muted-foreground" />}
-            description={`${filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 10).length}/${totalCalls} calls answered in time`}
+            description={`${baseFilteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 10).length}/${totalCalls} calls answered in time`}
             valueClassName="text-green-600"
           />
           <StatCard
             title="Service Level (<30s)"
             value={`${serviceLevel30s.toFixed(1)}%`}
             icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            description={`${filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length}/${totalCalls} calls answered in time`}
+            description={`${baseFilteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length}/${totalCalls} calls answered in time`}
             valueClassName="text-green-600"
           />
           <StatCard
@@ -220,16 +256,20 @@ export default function Dashboard({
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center gap-4 mb-4">
-                            <Input placeholder="Filter across all columns..." className="max-w-sm" />
-                             <Select>
+                            <Input 
+                                placeholder="Filter across all columns..." 
+                                className="max-w-sm"
+                                value={simplifiedCallsFilter}
+                                onChange={(e) => setSimplifiedCallsFilter(e.target.value)}
+                            />
+                             <Select value={simplifiedCallsStatusFilter} onValueChange={setSimplifiedCallsStatusFilter}>
                                 <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="All Statuses" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Statuses</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="abandoned">Abandoned</SelectItem>
-                                    <SelectItem value="missed">Missed</SelectItem>
+                                    <SelectItem value="Answered">Answered</SelectItem>
+                                    <SelectItem value="Abandoned">Abandoned</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -247,7 +287,7 @@ export default function Dashboard({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredCalls.map((call) => {
+                            {filteredSimplifiedCalls.map((call) => {
                                 const callDate = new Date(call.enter_datetime);
                                 return (
                                 <TableRow key={call.call_id}>
@@ -277,7 +317,12 @@ export default function Dashboard({
                         <CardDescription>Plus précis que « Données d'appel simplifiées ». Chaque appel peut être détaillé sur plusieurs lignes.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Input placeholder="Filter across all columns..." className="max-w-sm mb-4" />
+                        <Input 
+                            placeholder="Filter across all columns..." 
+                            className="max-w-sm mb-4"
+                            value={advancedCallsFilter}
+                            onChange={(e) => setAdvancedCallsFilter(e.target.value)}
+                        />
                         <Table>
                         <TableHeader>
                             <TableRow>
@@ -318,8 +363,8 @@ export default function Dashboard({
                 <CardContent>
                   <Input 
                       placeholder="Filter by agent, email, or date..." 
-                      value={profileFilter}
-                      onChange={(e) => setProfileFilter(e.target.value)}
+                      value={profileAvailabilityFilter}
+                      onChange={(e) => setProfileAvailabilityFilter(e.target.value)}
                       className="max-w-sm mb-4" 
                   />
                   <Table>
@@ -335,7 +380,7 @@ export default function Dashboard({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {additionallyFilteredProfileAvailability.map((profile, index) => (
+                      {filteredProfileAvailability.map((profile, index) => (
                         <TableRow key={`${profile.user_id}-${profile.hour}-${index}`}>
                           <TableCell>{new Date(profile.date).toLocaleDateString()}</TableCell>
                           <TableCell>{profile.user}</TableCell>
@@ -360,6 +405,12 @@ export default function Dashboard({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                   <Input 
+                      placeholder="Filter by agent, email or queue..." 
+                      value={agentConnectionsFilter}
+                      onChange={(e) => setAgentConnectionsFilter(e.target.value)}
+                      className="max-w-sm mb-4" 
+                  />
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -372,7 +423,7 @@ export default function Dashboard({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredAgentStatus.map((status, index) => (
+                      {filteredAgentConnections.map((status, index) => (
                         <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
                           <TableCell>{status.user}</TableCell>
                           <TableCell>{status.email}</TableCell>
