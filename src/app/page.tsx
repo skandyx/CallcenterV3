@@ -29,7 +29,7 @@ import {
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
+import { ResponsiveContainer, Treemap, Tooltip, LabelList } from 'recharts';
 import { TreemapContent } from '@/components/treemap-content';
 
 export default function Dashboard() {
@@ -520,9 +520,6 @@ export default function Dashboard() {
                         <CardDescription>Visualisation de tous les appels répartis par pays.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                         <pre className="text-xs bg-muted p-4 rounded-md overflow-x-auto">
-                            {JSON.stringify(countryDistributionData, null, 2)}
-                        </pre>
                         <ResponsiveContainer width="100%" height={300}>
                             <Treemap
                                 data={countryDistributionData}
@@ -530,9 +527,14 @@ export default function Dashboard() {
                                 aspectRatio={4 / 3}
                                 stroke="hsl(var(--card))"
                                 fill="hsl(var(--primary))"
-                                content={<TreemapContent />}
                                 isAnimationActive={false}
                             >
+                                <LabelList
+                                    position="center"
+                                    formatter={(props: any) => `${props.name}\n(${props.size})`}
+                                    fill="#fff"
+                                    fontSize={12}
+                                />
                                 <Tooltip
                                     formatter={(value: any, name: any) => [`${value} calls`, name]}
                                     cursor={{ fill: 'hsl(var(--muted))' }}
