@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -28,7 +29,7 @@ import {
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, Treemap } from 'recharts';
+import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { CustomTreemapContent } from '@/components/custom-treemap-content';
 
@@ -574,28 +575,58 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
             <TabsContent value="call-distribution">
-              <Card>
-                <CardHeader>
-                    <CardTitle>Distribution des appels par pays</CardTitle>
-                    <CardDescription>Visualisation de tous les appels répartis par pays.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={400}>
-                        <Treemap
-                            data={countryDistributionData}
-                            dataKey="size"
-                            stroke="#fff"
-                            fill="#8884d8"
-                            isAnimationActive={false}
-                            content={<CustomTreemapContent />}
-                            type="squarify"
-                        />
-                    </ResponsiveContainer>
-                </CardContent>
-              </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Distribution des appels par pays</CardTitle>
+                        <CardDescription>Visualisation de tous les appels répartis par pays.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={400}>
+                            <Treemap
+                                data={countryDistributionData}
+                                dataKey="size"
+                                type="squarify"
+                                isAnimationActive={false}
+                                content={<CustomTreemapContent />}
+                            />
+                        </ResponsiveContainer>
+                        <div className="mt-8">
+                            <h3 className="text-xl font-semibold mb-4">Journal des appels - Tous les pays</h3>
+                            <div className="border rounded-lg">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Time</TableHead>
+                                            <TableHead>Caller</TableHead>
+                                            <TableHead>Country</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {baseFilteredCalls.map((call) => (
+                                            <TableRow key={call.call_id}>
+                                                <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
+                                                <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
+                                                <TableCell>{call.calling_number}</TableCell>
+                                                <TableCell>{getCountryFromNumber(call.calling_number)}</TableCell>
+                                                <TableCell>
+                                                  <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'} className="capitalize">
+                                                      {call.status}
+                                                  </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </TabsContent>
         </Tabs>
       </main>
     </div>
   );
 }
+
