@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowDownCircle, ArrowUpCircle, Link } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Link, Circle } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const ROWS_PER_PAGE = 10;
@@ -79,6 +79,17 @@ export default function CallLog({ data }: { data: CallData[] }) {
       default:
         return "secondary";
     }
+  };
+
+  const getDirectionIcon = (statusDetail: string | undefined) => {
+    const detail = statusDetail?.toLowerCase() || '';
+    if (detail.includes("incoming")) {
+      return <ArrowDownCircle className="h-4 w-4 text-green-500" />;
+    }
+    if (detail.includes("outgoing")) {
+      return <ArrowUpCircle className="h-4 w-4 text-red-500" />;
+    }
+    return <Circle className="h-2 w-2 text-muted-foreground fill-current" />; // Default neutral icon
   };
 
   return (
@@ -146,17 +157,10 @@ export default function CallLog({ data }: { data: CallData[] }) {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
-                              <>
-                                {call.status_detail?.toLowerCase().includes("incoming") && (
-                                  <ArrowDownCircle className="h-4 w-4 text-green-500" />
-                                )}
-                                {call.status_detail?.toLowerCase().includes("outgoing") && (
-                                  <ArrowUpCircle className="h-4 w-4 text-red-500" />
-                                )}
-                              </>
+                              {getDirectionIcon(call.status_detail)}
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{call.status_detail}</p>
+                              <p>{call.status_detail || 'No detail available'}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
