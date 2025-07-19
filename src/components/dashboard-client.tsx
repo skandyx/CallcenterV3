@@ -31,6 +31,7 @@ import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { CustomTreemapContent } from '@/components/custom-treemap-content';
 import { Skeleton } from './ui/skeleton';
+import WorldMapChart from './world-map-chart';
 
 interface TreemapNode {
     name: string;
@@ -52,14 +53,10 @@ export default function DashboardClient() {
   const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
   const [agentStatusPage, setAgentStatusPage] = useState(1);
   const [statusAnalysisPage, setStatusAnalysisPage] = useState(1);
-  const [distributionPage, setDistributionPage] = useState(1);
 
   const ITEMS_PER_PAGE = 10;
 
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-
-  const [treemapData, setTreemapData] = useState<TreemapNode[]>([]);
-  const [treemapPath, setTreemapPath] = useState<string[]>([]);
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -117,97 +114,6 @@ export default function DashboardClient() {
   const serviceLevel30s = (filteredCalls.filter(c => (c.time_in_queue_seconds || 0) <= 30).length / totalCalls) * 100 || 0;
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
 
-  const getCountryFromNumber = (phoneNumber: string) => {
-    if (!phoneNumber) return 'Unknown';
-    if (phoneNumber.startsWith('0032')) return 'Belgium';
-    if (phoneNumber.startsWith('0033')) return 'France';
-    if (phoneNumber.startsWith('00216')) return 'Tunisia';
-    if (phoneNumber.startsWith('0041')) return 'Switzerland';
-    return 'Unknown';
-  };
-  
-    useEffect(() => {
-    const generateHierarchicalData = () => {
-      const countryData: { [key: string]: { [key: string]: number } } = {};
-
-      filteredCalls.forEach(call => {
-        const country = getCountryFromNumber(call.calling_number);
-        const agent = call.agent || 'N/A';
-        if (!countryData[country]) {
-          countryData[country] = {};
-        }
-        countryData[country][agent] = (countryData[country][agent] || 0) + 1;
-      });
-
-      const root: TreemapNode[] = Object.entries(countryData).map(([country, agents]) => ({
-        name: country,
-        children: Object.entries(agents).map(([agent, count]) => ({
-          name: agent,
-          size: count,
-        })),
-      }));
-      
-      setTreemapData(root);
-    };
-
-    generateHierarchicalData();
-  }, [filteredCalls]);
-
-  const displayedTreemapData = useMemo(() => {
-    if (treemapPath.length === 0) {
-      return treemapData.map(country => ({
-        name: country.name,
-        size: country.children?.reduce((acc, agent) => acc + (agent.size || 0), 0) || 0
-      }));
-    }
-    
-    let currentLevelData: TreemapNode[] | undefined = treemapData;
-    for (const key of treemapPath) {
-        const found = currentLevelData?.find(d => d.name === key);
-        if (found && found.children) {
-            currentLevelData = found.children;
-        } else {
-            // This happens when we are at the agent level, we show the agent itself.
-             const agentNode = currentLevelData?.find(d => d.name === key);
-             if (agentNode) {
-                 return [agentNode];
-             }
-             return [];
-        }
-    }
-    return currentLevelData || [];
-}, [treemapData, treemapPath]);
-
-
-const handleTreemapClick = (data: any) => {
-    if (data && data.name && treemapPath.length < 2) {
-      setTreemapPath(prev => [...prev, data.name]);
-    }
-};
-
-const handleBreadcrumbClick = (index: number) => {
-    setTreemapPath(treemapPath.slice(0, index));
-};
-
-const filteredDistributionCalls = useMemo(() => {
-    if (treemapPath.length === 0) return filteredCalls;
-
-    let calls = filteredCalls;
-    const country = treemapPath[0];
-    if (country) {
-       calls = calls.filter(c => getCountryFromNumber(c.calling_number) === country);
-    }
-    
-    const agent = treemapPath[1];
-    if (agent) {
-       calls = calls.filter(c => (c.agent || 'N/A') === agent);
-    }
-    
-    return calls;
-
-}, [filteredCalls, treemapPath]);
-
-
   const statusTreemapData = React.useMemo(() => {
     return Object.values(
       filteredCalls.reduce((acc, call) => {
@@ -242,7 +148,6 @@ const filteredDistributionCalls = useMemo(() => {
   const paginatedProfileAvailability = paginate(filteredProfileAvailability, profileAvailabilityPage);
   const paginatedAgentStatus = paginate(filteredAgentStatus, agentStatusPage);
   const paginatedStatusAnalysisCalls = paginate(statusFilteredCalls, statusAnalysisPage);
-  const paginatedDistributionCalls = paginate(filteredDistributionCalls, distributionPage);
 
   const renderPaginationControls = (dataLength: number, page: number, setPage: (page: number) => void) => {
       const totalPages = Math.ceil(dataLength / ITEMS_PER_PAGE);
@@ -566,71 +471,7 @@ const filteredDistributionCalls = useMemo(() => {
               </Card>
             </TabsContent>
             <TabsContent value="call-distribution">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Call Distribution by Country</CardTitle>
-                        <CardDescription>Geographic call distribution. Click a country to see agent breakdown.</CardDescription>
-                         <div className="text-sm text-muted-foreground">
-                            <Button variant="link" className="p-0 h-auto" onClick={() => handleBreadcrumbClick(0)}>Home</Button>
-                            {treemapPath.map((item, i) => (
-                                <React.Fragment key={item}>
-                                    {' > '}
-                                    <Button variant="link" className="p-0 h-auto" onClick={() => handleBreadcrumbClick(i + 1)}>{item}</Button>
-                                </React.Fragment>
-                            ))}
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div style={{width: '100%', height: 400}}>
-                            <ResponsiveContainer>
-                                <Treemap
-                                    data={displayedTreemapData}
-                                    dataKey="size"
-                                    type="squarify"
-                                    stroke="#fff"
-                                    fill="#8884d8"
-                                    content={<CustomTreemapContent />}
-                                    onClick={handleTreemapClick}
-                                    isAnimationActive={false}
-                                />
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="mt-8">
-                            <h3 className="text-xl font-semibold mb-4">Call Log</h3>
-                             <div className="border rounded-lg">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Time</TableHead>
-                                            <TableHead>Caller Number</TableHead>
-                                            <TableHead>Agent</TableHead>
-                                            <TableHead>Queue</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Status Detail</TableHead>
-                                            <TableHead>Duration</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {paginatedDistributionCalls.map(call => (
-                                            <TableRow key={call.call_id}>
-                                                <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
-                                                <TableCell>{call.calling_number}</TableCell>
-                                                <TableCell>{call.agent || 'N/A'}</TableCell>
-                                                <TableCell>{call.queue_name}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={call.status === 'Abandoned' ? 'destructive' : 'outline'}>{call.status}</Badge>
-                                                </TableCell>
-                                                <TableCell>{call.status_detail}</TableCell>
-                                                <TableCell>{call.processing_time_seconds || call.talk_time_seconds || 0}s</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                           {renderPaginationControls(filteredDistributionCalls.length, distributionPage, setDistributionPage)}
-                        </div>
-                    </CardContent>
-                </Card>
+                <WorldMapChart data={filteredCalls} />
             </TabsContent>
         </Tabs>
       </main>

@@ -1,12 +1,14 @@
 export interface CallData {
   call_id: string;
   enter_datetime: string;
-  status: 'Abandoned' | 'Answered' | 'Completed' | 'Missed' | string; // Loosened for other statuses
+  status: 'Abandoned' | 'Answered' | 'Completed' | 'Missed' | 'Redirected' | 'Direct call' | string; // Loosened for other statuses
   time_in_queue_seconds: number;
   queue_name: string;
   calling_number: string;
   agent_id?: string;
+  agent?: string;
   talk_time_seconds?: number;
+  processing_time_seconds?: number;
   status_detail?: string;
   // Adding other potential fields from logs
   [key: string]: any;
