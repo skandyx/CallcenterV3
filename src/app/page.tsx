@@ -404,7 +404,7 @@ export default function Dashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Input 
+                   <Input 
                       placeholder="Filter by agent, email, or date..." 
                       value={profileAvailabilityFilter}
                       onChange={(e) => { setProfileAvailabilityFilter(e.target.value); setProfileAvailabilityPage(1); }}
@@ -602,11 +602,26 @@ export default function Dashboard() {
                                 data={countryDistributionData}
                                 dataKey="size"
                                 aspectRatio={4 / 3}
-                                stroke="#fff"
-                                fill="#8884d8"
+                                stroke="hsl(var(--card))"
+                                fill="hsl(var(--primary))"
                                 isAnimationActive={false}
-                                content={<CustomTreemapContent />}
-                            />
+                            >
+                                <LabelList
+                                    position="center"
+                                    fill="#fff"
+                                    formatter={(props: any) => `${props.name}\n(${props.value})`}
+                                    fontSize={14}
+                                />
+                                <Tooltip
+                                    formatter={(value: any, name: any) => [value, 'Calls']}
+                                    cursor={{fill: 'hsl(var(--muted))'}}
+                                    contentStyle={{
+                                        background: 'hsl(var(--background))',
+                                        borderColor: 'hsl(var(--border))',
+                                        borderRadius: 'var(--radius)',
+                                    }}
+                                />
+                            </Treemap>
                         </ResponsiveContainer>
                         <div>
                             <h3 className="text-xl font-semibold mb-4">
@@ -664,4 +679,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
