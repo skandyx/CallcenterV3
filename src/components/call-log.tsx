@@ -228,3 +228,4 @@ export default function CallLog({ data }: { data: CallData[] }) {
     </Card>
   );
 }
+
