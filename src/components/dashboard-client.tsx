@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type {
   CallData, AdvancedCallData, AgentStatusData, ProfileAvailabilityData
 } from "@/types";
@@ -23,6 +23,8 @@ import {
   Clock,
   Zap,
   Percent,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { TreemapContent } from '@/components/treemap-content';
+import { Button } from '@/components/ui/button';
 
 interface DashboardClientProps {
   initialCalls: CallData[];
@@ -49,7 +52,11 @@ export default function DashboardClient({
   const [agentStatus, setAgentStatus] = useState<AgentStatusData[]>(initialAgentStatus);
   const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>(initialProfileAvailability);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [countryTreemapData, setCountryTreemapData] = useState<any[]>([]);
+  const [treemapLevel, setTreemapLevel] = useState<'direction' | 'country'>('direction');
+  const [selectedDirection, setSelectedDirection] = useState<'Inbound' | 'Outbound' | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
   const timeFormat: Intl.DateTimeFormatOptions = {
@@ -85,6 +92,8 @@ export default function DashboardClient({
     return items.filter(item => new Date(item[dateKey]).toDateString() === selectedDate.toDateString());
   }
 
+  const isOutgoing = (call: CallData | AdvancedCallData) => call.status_detail === 'Outgoing';
+
   const filteredCalls = filterByDate(calls, 'enter_datetime');
   const filteredAdvancedCalls = filterByDate(advancedCalls, 'enter_datetime');
   const filteredAgentStatus = filterByDate(agentStatus, 'date');
@@ -114,36 +123,71 @@ export default function DashboardClient({
     if (phoneNumber.startsWith('0032')) return 'Belgium';
     if (phoneNumber.startsWith('0033')) return 'France';
     if (phoneNumber.startsWith('00216')) return 'Tunisia';
-    return 'Unknown';
+    return 'Other';
   };
 
-  const countryData = filteredCalls.reduce((acc, call) => {
-      const country = getCountryFromNumber(call.calling_number);
-      if (country !== 'Unknown') {
-          if (!acc[country]) {
-              acc[country] = { name: country, value: 0, color: '' };
+  useEffect(() => {
+      const directionData = filteredCalls.reduce((acc, call) => {
+          const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
+          if (!acc[direction]) {
+              acc[direction] = { name: direction, children: [] };
           }
-          acc[country].value++;
+
+          const country = getCountryFromNumber(call.calling_number);
+          let countryNode = acc[direction].children.find((child: any) => child.name === country);
+
+          if (!countryNode) {
+              countryNode = { name: country, size: 0 };
+              acc[direction].children.push(countryNode);
+          }
+          countryNode.size++;
+
+          return acc;
+      }, {} as Record<string, { name: string; children: { name: string; size: number }[] }>);
+
+      setCountryTreemapData(Object.values(directionData));
+  }, [filteredCalls]);
+
+  const handleTreemapClick = (data: any) => {
+      if (treemapLevel === 'direction') {
+          setSelectedDirection(data.name);
+          setTreemapLevel('country');
+      } else if (treemapLevel === 'country') {
+          setSelectedCountry(data.name);
       }
-      return acc;
-  }, {} as Record<string, { name: string; value: number, color: string }>);
-
-  const countryColors = ['bg-indigo-400', 'bg-green-400', 'bg-yellow-400', 'bg-red-400', 'bg-blue-400'];
-  const countryDataArray = Object.values(countryData).map((country, index) => ({
-      ...country,
-      color: countryColors[index % countryColors.length],
-  }));
-
-  const totalCountryCalls = countryDataArray.reduce((acc, country) => acc + country.value, 0);
-
-  const handleCountryClick = (countryName: string) => {
-    setSelectedCountry(prev => (prev === countryName ? null : countryName));
   };
 
-  const distributionFilteredCalls = selectedCountry
-    ? filteredCalls.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry)
-    : filteredCalls;
-    
+  const handleBackClick = () => {
+      if (treemapLevel === 'country') {
+          setSelectedCountry(null);
+          setSelectedDirection(null);
+          setTreemapLevel('direction');
+      }
+  };
+
+  const treemapDataToDisplay = useMemo(() => {
+      if (treemapLevel === 'direction') {
+          return countryTreemapData.map(item => ({ name: item.name, size: item.children.reduce((sum: number, child: any) => sum + child.size, 0) }));
+      } else if (treemapLevel === 'country' && selectedDirection) {
+          const directionNode = countryTreemapData.find(item => item.name === selectedDirection);
+          return directionNode ? directionNode.children : [];
+      }
+      return [];
+  }, [countryTreemapData, treemapLevel, selectedDirection]);
+
+  const distributionFilteredCalls = useMemo(() => {
+      let filtered = filteredCalls;
+
+      if (selectedDirection) {
+          filtered = filtered.filter(call => (isOutgoing(call) ? 'Outbound' : 'Inbound') === selectedDirection);
+      }
+      if (selectedCountry) {
+          filtered = filtered.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry);
+      }
+      return filtered;
+  }, [filteredCalls, selectedDirection, selectedCountry]);
+
+
   const statusTreemapData = React.useMemo(() => {
     return Object.values(
       filteredCalls.reduce((acc, call) => {
@@ -164,6 +208,7 @@ export default function DashboardClient({
   const statusFilteredCalls = selectedStatus
     ? filteredCalls.filter(call => (call.status === selectedStatus || call.status_detail === selectedStatus))
     : filteredCalls;
+
 
   return (
     <div className="flex flex-col">
@@ -206,7 +251,7 @@ export default function DashboardClient({
             valueClassName="text-blue-600"
           />
         </div>
-        
+
         <Tabs defaultValue="simplified-calls">
             <TabsList className="grid w-full grid-cols-6 bg-muted">
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
@@ -422,6 +467,7 @@ export default function DashboardClient({
                       <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Direction</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
                                 <TableHead>Caller</TableHead>
@@ -434,8 +480,16 @@ export default function DashboardClient({
                         <TableBody>
                             {statusFilteredCalls.map((call) => {
                                 const callDate = new Date(call.enter_datetime);
+                                const outgoing = isOutgoing(call);
                                 return (
                                 <TableRow key={call.call_id}>
+                                    <TableCell>
+                                        {outgoing ? (
+                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                        ) : (
+                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                        )}
+                                    </TableCell>
                                     <TableCell>{callDate.toLocaleDateString()}</TableCell>
                                     <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>{call.calling_number}</TableCell>
@@ -460,38 +514,28 @@ export default function DashboardClient({
               <Card>
                 <CardHeader>
                   <CardTitle>Distribution des appels par pays</CardTitle>
-                  <CardDescription>Cliquez sur un pays pour filtrer le journal des appels.</CardDescription>
+                  <CardDescription>
+                    {treemapLevel === 'direction' ? 'Cliquez sur une direction pour afficher les pays.' : 'Cliquez sur un pays pour filtrer le journal des appels.'}
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8">
-                  <div className="w-full h-48 flex rounded-lg overflow-hidden">
-                    {countryDataArray.length > 0 ? countryDataArray.map(country => (
-                      <div
-                        key={country.name}
-                        className={`${country.color} flex items-center justify-center text-white font-bold text-lg cursor-pointer hover:opacity-90 transition-opacity ${selectedCountry === country.name ? 'ring-4 ring-offset-2 ring-blue-500' : ''}`}
-                        style={{ width: `${(country.value / totalCountryCalls) * 100}%` }}
-                        onClick={() => handleCountryClick(country.name)}
-                      >
-                       {country.name} ({country.value})
-                      </div>
-                    )) : (
-                      <div className="flex items-center justify-center w-full h-full bg-muted text-muted-foreground">
-                        Aucune donnée de pays à afficher
-                      </div>
-                    )}
-                  </div>
-
-                  <ResponsiveContainer width="100%" height={250}>
+                <CardContent className="space-y-4">
+                     {treemapLevel === 'country' && selectedDirection && (
+                        <Button onClick={handleBackClick} variant="outline" size="sm">
+                           Retour à {selectedDirection}
+                        </Button>
+                     )}
+                    <ResponsiveContainer width="100%" height={300}>
                         <Treemap
-                            data={countryDataArray}
-                            dataKey="value"
+                            data={treemapDataToDisplay}
+                            dataKey={treemapLevel === 'direction' ? 'size' : 'size'}
+                            aspectRatio={4 / 3}
                             stroke="hsl(var(--card))"
                             fill="hsl(var(--primary))"
-                            isAnimationActive={false}
                             content={<TreemapContent />}
-                            onClick={(data) => handleCountryClick(data.name)}
+                            isAnimationActive={false}
+                            onClick={(data) => handleTreemapClick(data)}
                         >
                             <Tooltip
-                                labelFormatter={(name) => name}
                                 formatter={(value: any, name: any) => [value, 'calls']}
                                 cursor={{fill: 'hsl(var(--muted))'}}
                                 contentStyle={{
@@ -505,31 +549,41 @@ export default function DashboardClient({
 
                   <div>
                     <h3 className="text-xl font-semibold mb-4">
-                        Journal des appels {selectedCountry && ` - ${selectedCountry}`}
+                        Journal des appels {selectedDirection && ` - ${selectedDirection}`}{selectedCountry && ` - ${selectedCountry}`}
                     </h3>
                     <div className="border rounded-lg">
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead>Direction</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Time</TableHead>
                             <TableHead>Caller Number</TableHead>
-                            <TableHead>Queue</TableHead>
+                            <TableHead>Country</TableHead>
+                            <TableHead>Queue/Agent</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Duration</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {distributionFilteredCalls.map(call => (
+                            {distributionFilteredCalls.map(call => {
+                                const outgoing = isOutgoing(call);
+                                return (
                                 <TableRow key={call.call_id}>
+                                     <TableCell>
+                                        {outgoing ? (
+                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                        ) : (
+                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                        )}
+                                    </TableCell>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>{call.calling_number}</TableCell>
-                                    <TableCell>{call.queue_name}</TableCell>
+                                    <TableCell>{getCountryFromNumber(call.calling_number)}</TableCell>
+                                    <TableCell>{call.agent || call.queue_name}</TableCell>
                                     <TableCell>{call.status}</TableCell>
-                                    <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                       </Table>
                     </div>

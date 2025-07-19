@@ -520,6 +520,9 @@ export default function Dashboard() {
                         <CardDescription>Visualisation de tous les appels répartis par pays.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                         <pre className="text-xs bg-muted p-4 rounded-md overflow-x-auto">
+                            {JSON.stringify(countryDistributionData, null, 2)}
+                        </pre>
                         <ResponsiveContainer width="100%" height={300}>
                             <Treemap
                                 data={countryDistributionData}
@@ -590,4 +593,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
