@@ -50,7 +50,8 @@ export default function Dashboard() {
   const [statusTreemapFilter, setStatusTreemapFilter] = useState<string | null>(null);
   
   // State for hierarchical treemap
-  const [treemapData, setTreemapData] = useState<any[]>([]);
+  const [distributionTreemapData, setDistributionTreemapData] = useState<any[]>([]);
+  const [currentTreemapLevel, setCurrentTreemapLevel] = useState<any[]>([]);
   const [treemapBreadcrumbs, setTreemapBreadcrumbs] = useState<any[]>([]);
 
 
@@ -158,14 +159,6 @@ export default function Dashboard() {
     );
   });
 
-  const distributionFilteredCalls = useMemo(() => {
-    if (treemapBreadcrumbs.length === 0) {
-      return baseFilteredCalls;
-    }
-    const lastCrumb = treemapBreadcrumbs[treemapBreadcrumbs.length - 1];
-    return lastCrumb.calls || baseFilteredCalls;
-  }, [treemapBreadcrumbs, baseFilteredCalls]);
-
   const getCountryFromNumber = (phoneNumber: string) => {
       if (!phoneNumber) return 'Unknown';
       if (phoneNumber.startsWith('0032')) return 'Belgium';
@@ -175,60 +168,66 @@ export default function Dashboard() {
   };
   
   useEffect(() => {
-    const processData = () => {
-        const hierarchy = {
-            Inbound: {} as any,
-            Outbound: {} as any,
-        };
-
-        baseFilteredCalls.forEach(call => {
-            const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
-            const country = getCountryFromNumber(call.calling_number);
-            const target = call.agent || call.queue_name || 'N/A';
-
-            if (!hierarchy[direction][country]) {
-                hierarchy[direction][country] = {};
-            }
-            if (!hierarchy[direction][country][target]) {
-                hierarchy[direction][country][target] = [];
-            }
-            hierarchy[direction][country][target].push(call);
-        });
-
-        const initialData = Object.keys(hierarchy).map(direction => ({
-            name: direction,
-            children: Object.keys(hierarchy[direction]).map(country => ({
-                name: country,
-                children: Object.keys(hierarchy[direction][country]).map(target => ({
-                    name: target,
-                    size: hierarchy[direction][country][target].length,
-                    calls: hierarchy[direction][country][target],
-                })),
-                calls: [].concat(...Object.values(hierarchy[direction][country]))
-            })),
-            calls: [].concat(...Object.values(hierarchy[direction]).flatMap(country => Object.values(country)))
-        }));
-        setTreemapData(initialData);
-        setTreemapBreadcrumbs([]);
+    const hierarchy = {
+      name: 'Calls',
+      children: [
+        { name: 'Inbound', children: [] as any[], calls: [] as CallData[] },
+        { name: 'Outbound', children: [] as any[], calls: [] as CallData[] }
+      ]
     };
-    processData();
+
+    const countryMap: { [key: string]: { [key: string]: { name: string, children: any[], calls: CallData[] } } } = {
+      Inbound: {},
+      Outbound: {}
+    };
+
+    baseFilteredCalls.forEach(call => {
+      const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
+      const country = getCountryFromNumber(call.calling_number);
+
+      if (!countryMap[direction][country]) {
+        countryMap[direction][country] = { name: country, children: [], calls: [] };
+      }
+      countryMap[direction][country].calls.push(call);
+    });
+    
+    hierarchy.children[0].children = Object.values(countryMap['Inbound']).map(c => ({...c, size: c.calls.length}));
+    hierarchy.children[1].children = Object.values(countryMap['Outbound']).map(c => ({...c, size: c.calls.length}));
+    
+    hierarchy.children[0].calls = [].concat(...Object.values(countryMap['Inbound']).map(c => c.calls));
+    hierarchy.children[1].calls = [].concat(...Object.values(countryMap['Outbound']).map(c => c.calls));
+
+    const initialData = hierarchy.children.map(d => ({...d, size: d.calls.length}));
+    
+    setDistributionTreemapData(initialData);
+    setCurrentTreemapLevel(initialData);
+    setTreemapBreadcrumbs([]);
   }, [baseFilteredCalls]);
 
   const handleTreemapClick = (node: any) => {
-      if (node && node.children && node.children.length > 0) {
-          setTreemapBreadcrumbs(prev => [...prev, { name: node.name, data: treemapData, calls: node.calls }]);
-          setTreemapData(node.children);
-      }
+    if (node && node.children && node.children.length > 0) {
+        setTreemapBreadcrumbs(prev => [...prev, { name: node.name, data: currentTreemapLevel }]);
+        setCurrentTreemapLevel(node.children);
+    }
   };
 
   const handleGoBack = () => {
-      if (treemapBreadcrumbs.length > 0) {
-          const newBreadcrumbs = [...treemapBreadcrumbs];
-          const lastState = newBreadcrumbs.pop();
-          setTreemapData(lastState.data);
-          setTreemapBreadcrumbs(newBreadcrumbs);
-      }
+    if (treemapBreadcrumbs.length > 0) {
+        const newBreadcrumbs = [...treemapBreadcrumbs];
+        const lastState = newBreadcrumbs.pop();
+        setCurrentTreemapLevel(lastState.data);
+        setTreemapBreadcrumbs(newBreadcrumbs);
+    }
   };
+
+  const distributionFilteredCalls = useMemo(() => {
+    if (treemapBreadcrumbs.length === 0) {
+      return baseFilteredCalls;
+    }
+    const lastCrumb = treemapBreadcrumbs[treemapBreadcrumbs.length - 1];
+    const selectedNode = lastCrumb.data.find((d: any) => d.name === lastCrumb.name);
+    return selectedNode?.calls || [];
+  }, [treemapBreadcrumbs, baseFilteredCalls]);
 
 
   return (
@@ -586,7 +585,7 @@ export default function Dashboard() {
                     <CardContent className="space-y-4">
                         <ResponsiveContainer width="100%" height={300}>
                             <Treemap
-                                data={treemapData}
+                                data={currentTreemapLevel}
                                 dataKey="size"
                                 aspectRatio={4 / 3}
                                 stroke="hsl(var(--card))"
