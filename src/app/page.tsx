@@ -30,7 +30,8 @@ import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveContainer, Treemap, Tooltip, LabelList } from 'recharts';
-import { TreemapContent } from '@/components/treemap-content';
+import { CustomTreemapContent } from '@/components/custom-treemap-content';
+
 
 export default function Dashboard() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -165,7 +166,15 @@ export default function Dashboard() {
       const country = getCountryFromNumber(call.calling_number);
       countryCounts[country] = (countryCounts[country] || 0) + 1;
     });
-    return Object.entries(countryCounts).map(([name, size]) => ({ name, size }));
+  
+    const colors = ['#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590'];
+    
+    return Object.entries(countryCounts)
+      .map(([name, size], index) => ({ 
+        name, 
+        size,
+        fill: colors[index % colors.length]
+      }));
   }, [baseFilteredCalls]);
 
 
@@ -447,7 +456,7 @@ export default function Dashboard() {
                       stroke="hsl(var(--card))"
                       fill="hsl(var(--primary))"
                       isAnimationActive={false}
-                      content={<TreemapContent />}
+                      content={<CustomTreemapContent />}
                       onClick={(data) => handleStatusClick(data.name)}
                     >
                        <Tooltip
@@ -525,26 +534,10 @@ export default function Dashboard() {
                                 data={countryDistributionData}
                                 dataKey="size"
                                 aspectRatio={4 / 3}
-                                stroke="hsl(var(--card))"
-                                fill="hsl(var(--primary))"
+                                stroke="#fff"
                                 isAnimationActive={false}
-                            >
-                                <LabelList
-                                    position="center"
-                                    formatter={(props: any) => `${props.name}\n(${props.size})`}
-                                    fill="#fff"
-                                    fontSize={12}
-                                />
-                                <Tooltip
-                                    formatter={(value: any, name: any) => [`${value} calls`, name]}
-                                    cursor={{ fill: 'hsl(var(--muted))' }}
-                                    contentStyle={{
-                                        background: 'hsl(var(--background))',
-                                        borderColor: 'hsl(var(--border))',
-                                        borderRadius: 'var(--radius)',
-                                    }}
-                                />
-                            </Treemap>
+                                content={<CustomTreemapContent />}
+                            />
                         </ResponsiveContainer>
                         <div>
                             <h3 className="text-xl font-semibold mb-4">
@@ -595,3 +588,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
