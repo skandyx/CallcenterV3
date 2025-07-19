@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, Link } from "lucide-react";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const ROWS_PER_PAGE = 10;
@@ -123,14 +123,14 @@ export default function CallLog({ data }: { data: CallData[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
+                <TableHead>Date & Time</TableHead>
                 <TableHead>Caller</TableHead>
                 <TableHead>Queue</TableHead>
                 <TableHead>Agent</TableHead>
-                <TableHead>Wait Time</TableHead>
-                <TableHead>Talk Time</TableHead>
-                <TableHead className="text-right">Status</TableHead>
+                <TableHead>Wait</TableHead>
+                <TableHead>Talk</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Call ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,22 +138,22 @@ export default function CallLog({ data }: { data: CallData[] }) {
                 paginatedData.map((call, index) => (
                   <TableRow key={`${call.call_id}-${index}`}>
                      <TableCell>
-                      {new Date(call.enter_datetime).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(call.enter_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                      <div>{new Date(call.enter_datetime).toLocaleDateString()}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(call.enter_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</div>
                     </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
-                              {call.status_detail?.toLowerCase().includes("incoming") && (
-                                <ArrowDownCircle className="h-4 w-4 text-green-500" />
-                              )}
-                              {call.status_detail?.toLowerCase().includes("outgoing") && (
-                                <ArrowUpCircle className="h-4 w-4 text-red-500" />
-                              )}
+                              <>
+                                {call.status_detail?.toLowerCase().includes("incoming") && (
+                                  <ArrowDownCircle className="h-4 w-4 text-green-500" />
+                                )}
+                                {call.status_detail?.toLowerCase().includes("outgoing") && (
+                                  <ArrowUpCircle className="h-4 w-4 text-red-500" />
+                                )}
+                              </>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>{call.status_detail}</p>
@@ -167,10 +167,19 @@ export default function CallLog({ data }: { data: CallData[] }) {
                     <TableCell>{call.agent || "N/A"}</TableCell>
                     <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
                     <TableCell>{call.processing_time_seconds || 0}s</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       <Badge variant={getStatusVariant(call.status)}>
                         {call.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                        <div>{call.call_id}</div>
+                        {call.parent_call_id && (
+                            <div className="flex items-center gap-1">
+                                <Link className="h-3 w-3"/>
+                                <span>{call.parent_call_id}</span>
+                            </div>
+                        )}
                     </TableCell>
                   </TableRow>
                 ))
