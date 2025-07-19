@@ -56,7 +56,6 @@ export default function Dashboard() {
   const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
   const [agentConnectionsPage, setAgentConnectionsPage] = useState(1);
   const [statusFilteredCallsPage, setStatusFilteredCallsPage] = useState(1);
-  const [distributionFilteredCallsPage, setDistributionFilteredCallsPage] = useState(1);
   
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -508,6 +507,7 @@ export default function Dashboard() {
                     <Treemap
                       data={statusTreemapData}
                       dataKey="size"
+                      type="squarify"
                       stroke="hsl(var(--card))"
                       fill="hsl(var(--primary))"
                       isAnimationActive={false}
@@ -588,6 +588,7 @@ export default function Dashboard() {
                             fill="#8884d8"
                             isAnimationActive={false}
                             content={<CustomTreemapContent />}
+                            type="squarify"
                         />
                     </ResponsiveContainer>
                 </CardContent>
