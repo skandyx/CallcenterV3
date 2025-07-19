@@ -22,6 +22,8 @@ import {
   Clock,
   Zap,
   Percent,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -196,6 +198,8 @@ export default function Dashboard({
     );
   });
 
+  const isOutgoing = (call: CallData | AdvancedCallData) => call.status_detail === 'Outgoing';
+
 
   return (
     <div className="flex flex-col">
@@ -276,6 +280,7 @@ export default function Dashboard({
                         <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Direction</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
                                 <TableHead>Caller</TableHead>
@@ -289,8 +294,16 @@ export default function Dashboard({
                         <TableBody>
                             {filteredSimplifiedCalls.map((call) => {
                                 const callDate = new Date(call.enter_datetime);
+                                const outgoing = isOutgoing(call);
                                 return (
                                 <TableRow key={call.call_id}>
+                                    <TableCell>
+                                        {outgoing ? (
+                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                        ) : (
+                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                        )}
+                                    </TableCell>
                                     <TableCell>{callDate.toLocaleDateString()}</TableCell>
                                     <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>{call.calling_number}</TableCell>
@@ -326,6 +339,7 @@ export default function Dashboard({
                         <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Direction</TableHead>
                                 <TableHead>Date & Time</TableHead>
                                 <TableHead>Call ID</TableHead>
                                 <TableHead>Agent</TableHead>
@@ -336,8 +350,17 @@ export default function Dashboard({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredAdvancedCalls.map((call, index) => (
+                            {filteredAdvancedCalls.map((call, index) => {
+                                const outgoing = isOutgoing(call);
+                                return(
                                 <TableRow key={`${call.call_id}-${index}`}>
+                                     <TableCell>
+                                        {outgoing ? (
+                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                        ) : (
+                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                        )}
+                                    </TableCell>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
                                     <TableCell>{call.call_id}</TableCell>
                                     <TableCell>{call.agent || 'N/A'}</TableCell>
@@ -346,7 +369,7 @@ export default function Dashboard({
                                     <TableCell>{call.status_detail}</TableCell>
                                     <TableCell>{call.processing_time_seconds ? `${call.processing_time_seconds}s` : 'N/A'}</TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                         </Table>
                     </CardContent>
@@ -477,6 +500,7 @@ export default function Dashboard({
                       <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Direction</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
                                 <TableHead>Caller</TableHead>
@@ -489,8 +513,16 @@ export default function Dashboard({
                         <TableBody>
                             {statusFilteredCalls.map((call) => {
                                 const callDate = new Date(call.enter_datetime);
+                                const outgoing = isOutgoing(call);
                                 return (
                                 <TableRow key={call.call_id}>
+                                    <TableCell>
+                                        {outgoing ? (
+                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                        ) : (
+                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                        )}
+                                    </TableCell>
                                     <TableCell>{callDate.toLocaleDateString()}</TableCell>
                                     <TableCell>{callDate.toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>{call.calling_number}</TableCell>
@@ -543,6 +575,7 @@ export default function Dashboard({
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead>Direction</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Time</TableHead>
                             <TableHead>Caller Number</TableHead>
@@ -552,8 +585,17 @@ export default function Dashboard({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {distributionFilteredCalls.map(call => (
+                            {distributionFilteredCalls.map(call => {
+                                const outgoing = isOutgoing(call);
+                                return (
                                 <TableRow key={call.call_id}>
+                                    <TableCell>
+                                        {outgoing ? (
+                                            <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                                        ) : (
+                                            <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                                        )}
+                                    </TableCell>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
                                     <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
                                     <TableCell>{call.calling_number}</TableCell>
@@ -561,7 +603,7 @@ export default function Dashboard({
                                     <TableCell>{call.status}</TableCell>
                                     <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                       </Table>
                     </div>
