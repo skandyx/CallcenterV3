@@ -194,7 +194,8 @@ export default function Dashboard({
     return (
         status.user.toLowerCase().includes(searchTerm) ||
         status.email.toLowerCase().includes(searchTerm) ||
-        status.queuename.toLowerCase().includes(searchTerm)
+        status.queuename.toLowerCase().includes(searchTerm) ||
+        new Date(status.date).toLocaleDateString().toLowerCase().includes(searchTerm)
     );
   });
 
@@ -437,6 +438,7 @@ export default function Dashboard({
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Date</TableHead>
                         <TableHead>Agent</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>File d'attente</TableHead>
@@ -448,6 +450,7 @@ export default function Dashboard({
                     <TableBody>
                       {filteredAgentConnections.map((status, index) => (
                         <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
+                          <TableCell>{new Date(status.date).toLocaleDateString()}</TableCell>
                           <TableCell>{status.user}</TableCell>
                           <TableCell>{status.email}</TableCell>
                           <TableCell>{status.queuename}</TableCell>
@@ -617,3 +620,5 @@ export default function Dashboard({
     </div>
   );
 }
+
+    
