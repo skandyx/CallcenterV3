@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from './ui/skeleton';
 import WorldMapChart from './world-map-chart';
 import StatusAnalysisChart from './status-analysis-chart';
+import AdvancedCallLog from './advanced-call-log';
 
 export default function DashboardClient() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -40,7 +41,6 @@ export default function DashboardClient() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   
   const [simplifiedCallsPage, setSimplifiedCallsPage] = useState(1);
-  const [advancedCallsPage, setAdvancedCallsPage] = useState(1);
   const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
   const [agentStatusPage, setAgentStatusPage] = useState(1);
 
@@ -107,7 +107,6 @@ export default function DashboardClient() {
   };
 
   const paginatedSimplifiedCalls = paginate(filteredCalls, simplifiedCallsPage);
-  const paginatedAdvancedCalls = paginate(filteredAdvancedCalls, advancedCallsPage);
   const paginatedProfileAvailability = paginate(filteredProfileAvailability, profileAvailabilityPage);
   const paginatedAgentStatus = paginate(filteredAgentStatus, agentStatusPage);
 
@@ -255,41 +254,7 @@ export default function DashboardClient() {
                 </Card>
             </TabsContent>
             <TabsContent value="advanced-calls">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Données d'appel avancées</CardTitle>
-                        <CardDescription>Plus précis que « Données d'appel simplifiées ». Chaque appel peut être détaillé sur plusieurs lignes.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Date & Time</TableHead>
-                                <TableHead>Call ID</TableHead>
-                                <TableHead>Agent</TableHead>
-                                <TableHead>Caller Number</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Status Detail</TableHead>
-                                <TableHead>Processing Time</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {paginatedAdvancedCalls.map((call, index) => (
-                                <TableRow key={`${call.call_id}-${index}`}>
-                                    <TableCell>{new Date(call.enter_datetime).toLocaleString([], { ...timeFormat, day: '2-digit', month: '2-digit', year: 'numeric' })}</TableCell>
-                                    <TableCell>{call.call_id}</TableCell>
-                                    <TableCell>{call.agent || 'N/A'}</TableCell>
-                                    <TableCell>{call.calling_number}</TableCell>
-                                    <TableCell>{call.status}</TableCell>
-                                    <TableCell>{call.status_detail}</TableCell>
-                                    <TableCell>{call.processing_time_seconds ? `${call.processing_time_seconds}s` : 'N/A'}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                        </Table>
-                         {renderPaginationControls(filteredAdvancedCalls.length, advancedCallsPage, setAdvancedCallsPage)}
-                    </CardContent>
-                </Card>
+                 <AdvancedCallLog data={filteredAdvancedCalls} />
             </TabsContent>
              <TabsContent value="profile-availability">
               <Card>
