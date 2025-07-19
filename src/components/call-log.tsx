@@ -143,6 +143,7 @@ export default function CallLog({ data }: { data: CallData[] }) {
                 <TableHead>Talk</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Call ID</TableHead>
+                <TableHead>Parent Call ID</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -179,19 +180,21 @@ export default function CallLog({ data }: { data: CallData[] }) {
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                         <div>{call.call_id}</div>
-                        {call.parent_call_id && (
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                        {call.parent_call_id ? (
                             <div className="flex items-center gap-1">
                                 <Link className="h-3 w-3"/>
                                 <span>{call.parent_call_id}</span>
                             </div>
-                        )}
+                        ) : '-'}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={9}
                     className="h-24 text-center text-muted-foreground"
                   >
                     No results found.
@@ -228,4 +231,3 @@ export default function CallLog({ data }: { data: CallData[] }) {
     </Card>
   );
 }
-
