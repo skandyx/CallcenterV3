@@ -68,9 +68,11 @@ export default function DashboardClient() {
     hour12: false,
   };
 
-  const fetchData = async () => {
-    try {
+  const fetchData = async (initialLoad = false) => {
+    if (initialLoad) {
       setLoading(true);
+    }
+    try {
       const response = await fetch('/api/data');
       if (!response.ok) {
         throw new Error('Failed to fetch data');
@@ -83,13 +85,15 @@ export default function DashboardClient() {
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
+      if (initialLoad) {
         setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    fetchData(); 
-    const interval = setInterval(fetchData, 5000); 
+    fetchData(true); // Initial fetch with loading state
+    const interval = setInterval(() => fetchData(false), 5000); // Subsequent fetches without loading state
     return () => clearInterval(interval);
   }, []);
 
@@ -118,7 +122,6 @@ export default function DashboardClient() {
     if (phoneNumber.startsWith('0032')) return 'Belgium';
     if (phoneNumber.startsWith('0033')) return 'France';
     if (phoneNumber.startsWith('00216')) return 'Tunisia';
-    // Add more prefixes here, e.g., Switzerland
     if (phoneNumber.startsWith('0041')) return 'Switzerland';
     return 'Unknown';
   };
@@ -158,22 +161,27 @@ export default function DashboardClient() {
       }));
     }
     
-    let currentLevel = treemapData;
+    let currentLevelData: TreemapNode[] | undefined = treemapData;
     for (const key of treemapPath) {
-        const found = currentLevel.find(d => d.name === key);
+        const found = currentLevelData?.find(d => d.name === key);
         if (found && found.children) {
-            currentLevel = found.children;
+            currentLevelData = found.children;
         } else {
-            return []; // Path not found
+            // This happens when we are at the agent level, we show the agent itself.
+             const agentNode = currentLevelData?.find(d => d.name === key);
+             if (agentNode) {
+                 return [agentNode];
+             }
+             return [];
         }
     }
-    return currentLevel;
+    return currentLevelData || [];
 }, [treemapData, treemapPath]);
 
 
 const handleTreemapClick = (data: any) => {
-    if (data && data.name && treemapPath.length === 0) {
-      setTreemapPath([data.name]);
+    if (data && data.name && treemapPath.length < 2) {
+      setTreemapPath(prev => [...prev, data.name]);
     }
 };
 
@@ -184,13 +192,18 @@ const handleBreadcrumbClick = (index: number) => {
 const filteredDistributionCalls = useMemo(() => {
     if (treemapPath.length === 0) return filteredCalls;
 
+    let calls = filteredCalls;
     const country = treemapPath[0];
-    let calls = filteredCalls.filter(c => getCountryFromNumber(c.calling_number) === country);
+    if (country) {
+       calls = calls.filter(c => getCountryFromNumber(c.calling_number) === country);
+    }
     
-    if (treemapPath.length === 1) return calls;
-
     const agent = treemapPath[1];
-    return calls.filter(c => (c.agent || 'N/A') === agent);
+    if (agent) {
+       calls = calls.filter(c => (c.agent || 'N/A') === agent);
+    }
+    
+    return calls;
 
 }, [filteredCalls, treemapPath]);
 
@@ -493,7 +506,7 @@ const filteredDistributionCalls = useMemo(() => {
                     Cliquez sur un statut dans le graphique pour filtrer le journal des appels.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grid gap-8 lg:grid-cols-2">
+                <CardContent className="grid gap-8">
                     <div className="h-[400px]">
                       <ResponsiveContainer width="100%" height="100%">
                           <Treemap
@@ -573,6 +586,7 @@ const filteredDistributionCalls = useMemo(() => {
                                 <Treemap
                                     data={displayedTreemapData}
                                     dataKey="size"
+                                    type="squarify"
                                     stroke="#fff"
                                     fill="#8884d8"
                                     content={<CustomTreemapContent />}
@@ -623,4 +637,3 @@ const filteredDistributionCalls = useMemo(() => {
     </div>
   );
 }
-
