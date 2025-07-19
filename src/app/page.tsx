@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -29,7 +28,7 @@ import {
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
+import { ResponsiveContainer, Treemap } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { CustomTreemapContent } from '@/components/custom-treemap-content';
 
@@ -58,9 +57,6 @@ export default function Dashboard() {
   const [agentConnectionsPage, setAgentConnectionsPage] = useState(1);
   const [statusFilteredCallsPage, setStatusFilteredCallsPage] = useState(1);
   const [distributionFilteredCallsPage, setDistributionFilteredCallsPage] = useState(1);
-
-  // State for hierarchical treemap
-  const [treemapBreadcrumbs, setTreemapBreadcrumbs] = useState<string[]>(['root']);
   
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -180,7 +176,6 @@ export default function Dashboard() {
   const agentConnectionsPaginated = filteredAgentConnections.slice((agentConnectionsPage - 1) * ITEMS_PER_PAGE, agentConnectionsPage * ITEMS_PER_PAGE);
   const totalAgentConnectionsPages = Math.ceil(filteredAgentConnections.length / ITEMS_PER_PAGE);
 
-
   const getCountryFromNumber = (phoneNumber: string) => {
       if (!phoneNumber) return 'Unknown';
       if (phoneNumber.startsWith('0032')) return 'Belgium';
@@ -189,84 +184,18 @@ export default function Dashboard() {
       return 'Other';
   };
   
-  const distributionTreemapData = useMemo(() => {
-    const hierarchy = { name: 'root', children: [] as any[] };
-
-    baseFilteredCalls.forEach(call => {
-        const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
+  const countryDistributionData = useMemo(() => {
+    const distribution = baseFilteredCalls.reduce((acc, call) => {
         const country = getCountryFromNumber(call.calling_number);
-        const agentOrQueue = call.agent?.trim() || call.queue_name?.trim() || 'N/A';
-
-        let directionNode = hierarchy.children.find(d => d.name === direction);
-        if (!directionNode) {
-            directionNode = { name: direction, children: [] };
-            hierarchy.children.push(directionNode);
+        if (!acc[country]) {
+            acc[country] = { name: country, size: 0 };
         }
+        acc[country].size++;
+        return acc;
+    }, {} as Record<string, { name: string; size: number }>);
 
-        let countryNode = directionNode.children.find((c:any) => c.name === country);
-        if (!countryNode) {
-            countryNode = { name: country, children: [] };
-            directionNode.children.push(countryNode);
-        }
-
-        let leafNode = countryNode.children.find((l:any) => l.name === agentOrQueue);
-        if (!leafNode) {
-            leafNode = { name: agentOrQueue, size: 0 };
-            countryNode.children.push(leafNode);
-        }
-        leafNode.size++;
-    });
-
-    return hierarchy.children;
+    return Object.values(distribution);
   }, [baseFilteredCalls]);
-
-  const handleTreemapClick = (data: any) => {
-    if (data && data.name) {
-      setTreemapBreadcrumbs(prev => [...prev, data.name]);
-    }
-  };
-
-  const handleBreadcrumbClick = (index: number) => {
-    setTreemapBreadcrumbs(prev => prev.slice(0, index + 1));
-  };
-
-  const getCurrentTreemapData = () => {
-    let currentData: any[] = distributionTreemapData;
-    for (let i = 1; i < treemapBreadcrumbs.length; i++) {
-        const breadcrumb = treemapBreadcrumbs[i];
-        const nextNode = currentData.find(item => item.name === breadcrumb);
-        if (nextNode && nextNode.children) {
-            currentData = nextNode.children;
-        } else {
-            return [];
-        }
-    }
-    return currentData;
-  };
-  const currentTreemapLevelData = getCurrentTreemapData();
-
-
-  const distributionFilteredCalls = useMemo(() => {
-    let filtered = baseFilteredCalls;
-    const level = treemapBreadcrumbs.length;
-
-    if (level > 1) { // Direction level
-        const direction = treemapBreadcrumbs[1] === 'Outbound';
-        filtered = filtered.filter(call => isOutgoing(call) === direction);
-    }
-    if (level > 2) { // Country level
-        const country = treemapBreadcrumbs[2];
-        filtered = filtered.filter(call => getCountryFromNumber(call.calling_number) === country);
-    }
-    if (level > 3) { // Agent/Queue level
-        const agentOrQueue = treemapBreadcrumbs[3];
-        filtered = filtered.filter(call => (call.agent?.trim() || call.queue_name?.trim() || 'N/A') === agentOrQueue);
-    }
-    return filtered;
-  }, [baseFilteredCalls, treemapBreadcrumbs]);
-  
-  const distributionFilteredCallsPaginated = distributionFilteredCalls.slice((distributionFilteredCallsPage - 1) * ITEMS_PER_PAGE, distributionFilteredCallsPage * ITEMS_PER_PAGE);
-  const totalDistributionFilteredPages = Math.ceil(distributionFilteredCalls.length / ITEMS_PER_PAGE);
 
   return (
     <div className="flex flex-col">
@@ -584,18 +513,7 @@ export default function Dashboard() {
                       isAnimationActive={false}
                       content={<CustomTreemapContent />}
                       onClick={(data) => handleStatusClick(data.name)}
-                    >
-                       <Tooltip
-                          labelFormatter={(name) => name}
-                          formatter={(value: any, name: any, props: any) => [`${value} calls`, props.payload.name]}
-                          cursor={{ fill: 'hsl(var(--muted))' }}
-                          contentStyle={{
-                              background: 'hsl(var(--background))',
-                              borderColor: 'hsl(var(--border))',
-                              borderRadius: 'var(--radius)',
-                          }}
-                      />
-                    </Treemap>
+                    />
                   </ResponsiveContainer>
                    <div>
                     <h3 className="text-xl font-semibold mb-4">
@@ -656,88 +574,24 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
             <TabsContent value="call-distribution">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Distribution des appels par pays</CardTitle>
-                        <CardDescription>Cliquez sur un rectangle pour explorer la hiérarchie des appels.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center gap-2">
-                            {treemapBreadcrumbs.map((breadcrumb, index) => (
-                                <React.Fragment key={breadcrumb}>
-                                    <Button
-                                        variant="link"
-                                        className="p-0 h-auto"
-                                        onClick={() => handleBreadcrumbClick(index)}
-                                    >
-                                        {breadcrumb === 'root' ? 'Total' : breadcrumb}
-                                    </Button>
-                                    {index < treemapBreadcrumbs.length - 1 && <span>/</span>}
-                                </React.Fragment>
-                            ))}
-                        </div>
-                        <ResponsiveContainer width="100%" height={300}>
-                           <Treemap
-                                data={currentTreemapLevelData}
-                                dataKey="size"
-                                aspectRatio={4 / 3}
-                                stroke="hsl(var(--card))"
-                                fill="hsl(var(--primary))"
-                                isAnimationActive={false}
-                                content={<CustomTreemapContent />}
-                                onClick={handleTreemapClick}
-                           />
-                        </ResponsiveContainer>
-                        <div>
-                            <h3 className="text-xl font-semibold mb-4">
-                                Journal des appels
-                            </h3>
-                            <div className="border rounded-lg">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Direction</TableHead>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Time</TableHead>
-                                            <TableHead>Caller Number</TableHead>
-                                            <TableHead>Country</TableHead>
-                                            <TableHead>Queue/Agent</TableHead>
-                                            <TableHead>Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {distributionFilteredCallsPaginated.map(call => {
-                                            const outgoing = isOutgoing(call);
-                                            return (
-                                            <TableRow key={call.call_id}>
-                                                <TableCell>
-                                                    {outgoing ? (
-                                                        <ArrowUpCircle className="h-5 w-5 text-red-500" />
-                                                    ) : (
-                                                        <ArrowDownCircle className="h-5 w-5 text-green-500" />
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
-                                                <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], timeFormat)}</TableCell>
-                                                <TableCell>{call.calling_number}</TableCell>
-                                                <TableCell>{getCountryFromNumber(call.calling_number)}</TableCell>
-                                                <TableCell>{call.agent || call.queue_name}</TableCell>
-                                                <TableCell>{call.status}</TableCell>
-                                            </TableRow>
-                                        )})}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <div className="flex justify-end space-x-2 pt-4">
-                                <span className="text-sm text-muted-foreground">
-                                    Page {distributionFilteredCallsPage} of {totalDistributionFilteredPages}
-                                </span>
-                                <Button variant="outline" size="sm" onClick={() => setDistributionFilteredCallsPage(p => p - 1)} disabled={distributionFilteredCallsPage === 1}>Précédent</Button>
-                                <Button variant="outline" size="sm" onClick={() => setDistributionFilteredCallsPage(p => p + 1)} disabled={distributionFilteredCallsPage >= totalDistributionFilteredPages}>Suivant</Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+              <Card>
+                <CardHeader>
+                    <CardTitle>Distribution des appels par pays</CardTitle>
+                    <CardDescription>Visualisation de tous les appels répartis par pays.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                        <Treemap
+                            data={countryDistributionData}
+                            dataKey="size"
+                            stroke="#fff"
+                            fill="#8884d8"
+                            isAnimationActive={false}
+                            content={<CustomTreemapContent />}
+                        />
+                    </ResponsiveContainer>
+                </CardContent>
+              </Card>
             </TabsContent>
         </Tabs>
       </main>

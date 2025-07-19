@@ -3,10 +3,19 @@
 
 import React from 'react';
 
-const COLORS = ['#FF4136', '#85144b', '#001f3f'];
+// A more diverse and vibrant color palette inspired by the user's image.
+const COLORS = [
+  '#ef4444', // red-500
+  '#a855f7', // purple-500
+  '#3b82f6', // blue-500
+  '#f97316', // orange-500
+  '#eab308', // yellow-500
+  '#22c55e', // green-500
+  '#06b6d4', // cyan-500
+];
 
 export const CustomTreemapContent = (props: any) => {
-    const { root, depth, x, y, width, height, index, payload, name, size } = props;
+    const { depth, x, y, width, height, index, name, size } = props;
     
     // Assign color based on index to cycle through the palette
     const color = COLORS[index % COLORS.length];
@@ -37,21 +46,21 @@ export const CustomTreemapContent = (props: any) => {
                     y={y + height / 2}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill="#fff"
+                    fill="#000" // Black text for better contrast on light backgrounds
                     className="text-base font-medium"
                 >
                     {name}
                 </text>
             ) : null}
-            {width > 80 && height > 40 ? (
+            {width > 80 && height > 55 ? ( // Ensure there's enough space for the second line
                 <text
                     x={x + width / 2}
                     y={y + height / 2 + 20}
                     textAnchor="middle"
-                    fill="#fff"
-                    className="text-xs"
+                    fill="#000"
+                    className="text-sm"
                 >
-                    {size} calls
+                    {size}
                 </text>
             ) : null}
         </g>
