@@ -80,7 +80,7 @@ export default function CallLog({ data }: { data: CallData[] }) {
         return "secondary";
     }
   };
-
+  
   const getDirectionIcon = (statusDetail: string | undefined) => {
     const detail = statusDetail?.toLowerCase() || '';
     if (detail.includes("incoming")) {
@@ -91,6 +91,7 @@ export default function CallLog({ data }: { data: CallData[] }) {
     }
     return <Circle className="h-2 w-2 text-muted-foreground fill-current" />; // Default neutral icon
   };
+
 
   return (
     <Card>
