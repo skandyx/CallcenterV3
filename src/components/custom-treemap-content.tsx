@@ -2,13 +2,17 @@
 'use client'
 
 import React from 'react';
-import { cn } from "@/lib/utils"
+
+const COLORS = ['#FF4136', '#85144b', '#001f3f'];
 
 export const CustomTreemapContent = (props: any) => {
     const { root, depth, x, y, width, height, index, payload, name, size } = props;
+    
+    // Assign color based on index to cycle through the palette
+    const color = COLORS[index % COLORS.length];
 
-    // Defensive check to ensure payload and payload.fill exist
-    if (!payload || !payload.fill) {
+    // Only render the block if it has a measurable size
+    if (width <= 0 || height <= 0) {
         return null;
     }
 
@@ -20,12 +24,13 @@ export const CustomTreemapContent = (props: any) => {
                 width={width}
                 height={height}
                 style={{
-                    fill: payload.fill,
+                    fill: color,
                     stroke: '#fff',
                     strokeWidth: 2,
                     strokeOpacity: 1,
                 }}
             />
+            {/* Render text only if the block is large enough to be legible */}
             {width > 80 && height > 40 ? (
                 <text
                     x={x + width / 2}

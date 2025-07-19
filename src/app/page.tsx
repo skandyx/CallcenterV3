@@ -30,8 +30,9 @@ import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveContainer, Treemap, Tooltip, LabelList } from 'recharts';
-import { CustomTreemapContent } from '@/components/custom-treemap-content';
 import { Button } from '@/components/ui/button';
+import { CustomTreemapContent } from '@/components/custom-treemap-content';
+
 
 const ITEMS_PER_PAGE = 10;
 
@@ -600,28 +601,11 @@ export default function Dashboard() {
                         <ResponsiveContainer width="100%" height={300}>
                             <Treemap
                                 data={countryDistributionData}
-                                dataKey="size"
                                 aspectRatio={4 / 3}
-                                stroke="hsl(var(--card))"
-                                fill="hsl(var(--primary))"
+                                dataKey="size"
                                 isAnimationActive={false}
-                            >
-                                <LabelList
-                                    position="center"
-                                    fill="#fff"
-                                    formatter={(props: any) => `${props.name}\n(${props.value})`}
-                                    fontSize={14}
-                                />
-                                <Tooltip
-                                    formatter={(value: any, name: any) => [value, 'Calls']}
-                                    cursor={{fill: 'hsl(var(--muted))'}}
-                                    contentStyle={{
-                                        background: 'hsl(var(--background))',
-                                        borderColor: 'hsl(var(--border))',
-                                        borderRadius: 'var(--radius)',
-                                    }}
-                                />
-                            </Treemap>
+                                content={<CustomTreemapContent />}
+                            />
                         </ResponsiveContainer>
                         <div>
                             <h3 className="text-xl font-semibold mb-4">
