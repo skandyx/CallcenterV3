@@ -28,7 +28,7 @@ import {
 import PageHeader from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
+import { ResponsiveContainer, Treemap, Tooltip, BarChart, XAxis, YAxis, Bar, CartesianGrid, Legend } from 'recharts';
 import { TreemapContent } from '@/components/treemap-content';
 import { Button } from '@/components/ui/button';
 
@@ -46,10 +46,6 @@ export default function Dashboard() {
   const [profileAvailabilityFilter, setProfileAvailabilityFilter] = useState('');
   const [agentConnectionsFilter, setAgentConnectionsFilter] = useState('');
   const [statusTreemapFilter, setStatusTreemapFilter] = useState<string | null>(null);
-
-  // State for the hierarchical distribution treemap
-  const [distributionPath, setDistributionPath] = useState<string[]>([]);
-
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -99,14 +95,6 @@ export default function Dashboard() {
   const answerRate = (answeredCalls / totalCalls) * 100 || 0;
 
   const isOutgoing = (call: CallData | AdvancedCallData) => call.status_detail === 'Outgoing';
-
-  const getCountryFromNumber = (phoneNumber: string) => {
-    if (!phoneNumber) return 'Unknown';
-    if (phoneNumber.startsWith('0032')) return 'Belgium';
-    if (phoneNumber.startsWith('0033')) return 'France';
-    if (phoneNumber.startsWith('00216')) return 'Tunisia';
-    return 'Other';
-  };
 
   const statusTreemapData = React.useMemo(() => {
     return Object.values(baseFilteredCalls.reduce((acc, call) => {
@@ -162,89 +150,19 @@ export default function Dashboard() {
         new Date(status.date).toLocaleDateString().toLowerCase().includes(searchTerm)
     );
   });
+  
+  const distributionChartData = React.useMemo(() => {
+    const counts = baseFilteredCalls.reduce((acc, call) => {
+        const direction = isOutgoing(call) ? 'Outbound' : 'Inbound';
+        acc[direction]++;
+        return acc;
+    }, { Inbound: 0, Outbound: 0 });
 
-  const distributionTreemapData = React.useMemo(() => {
-    const hierarchy: any = { name: "Calls", children: [] };
-    const directionMap: Record<string, any> = { Inbound: { name: "Inbound", children: [] }, Outbound: { name: "Outbound", children: [] } };
-  
-    baseFilteredCalls.forEach(call => {
-      const direction = isOutgoing(call) ? "Outbound" : "Inbound";
-      const country = getCountryFromNumber(call.calling_number);
-      if (country === 'Unknown' || country === 'Other') return;
-      const leafName = call.agent?.trim() || call.queue_name?.trim() || 'N/A';
-      if (leafName === 'N/A') return;
-  
-      let directionNode = directionMap[direction];
-      
-      let countryNode = directionNode.children.find((c: any) => c.name === country);
-      if (!countryNode) {
-        countryNode = { name: country, children: [] };
-        directionNode.children.push(countryNode);
-      }
-      
-      let leafNode = countryNode.children.find((l: any) => l.name === leafName);
-      if (!leafNode) {
-        leafNode = { name: leafName, value: 0 };
-        countryNode.children.push(leafNode);
-      }
-      leafNode.value++;
-    });
-  
-    // Add value properties to country and direction nodes by summing up children
-    Object.values(directionMap).forEach(directionNode => {
-      directionNode.children.forEach((countryNode: any) => {
-        countryNode.value = countryNode.children.reduce((acc: number, leaf: any) => acc + leaf.value, 0);
-      });
-      directionNode.value = directionNode.children.reduce((acc: number, country: any) => acc + country.value, 0);
-    });
-  
-    hierarchy.children.push(directionMap.Inbound, directionMap.Outbound);
-    return hierarchy;
+    return [
+        { name: 'Inbound', calls: counts.Inbound, fill: 'hsl(var(--chart-2))' },
+        { name: 'Outbound', calls: counts.Outbound, fill: 'hsl(var(--chart-1))' },
+    ];
   }, [baseFilteredCalls]);
-  
-  const handleDistributionClick = (data: any) => {
-    if (data && data.depth < 3) {
-      if (data.depth === 1) setDistributionPath([data.name]);
-      if (data.depth === 2) setDistributionPath(prev => [prev[0], data.name]);
-    }
-  };
-
-  const resetDistributionPath = () => {
-    setDistributionPath([]);
-  }
-
-  const getVisibleTreemapData = () => {
-    if (!distributionTreemapData) return [];
-    let currentLevel: any = distributionTreemapData;
-    for (const key of distributionPath) {
-      currentLevel = currentLevel?.children?.find((node: any) => node.name === key);
-    }
-    return currentLevel?.children || [];
-  };
-
-  const visibleTreemapData = getVisibleTreemapData();
-
-  const distributionFilteredCalls = baseFilteredCalls.filter(call => {
-    if (distributionPath.length === 0) return true;
-    
-    const [direction, country, leaf] = distributionPath;
-    
-    const callDirection = isOutgoing(call) ? 'Outbound' : 'Inbound';
-    if (direction && callDirection !== direction) return false;
-    
-    const callCountry = getCountryFromNumber(call.calling_number);
-    if (country && callCountry !== country) return false;
-
-    const callLeaf = call.agent || call.queue_name || 'N/A';
-    if (leaf && callLeaf !== leaf) return false;
-
-    return true;
-  });
-
-  const getBreadcrumb = () => {
-    if (distributionPath.length === 0) return "Distribution des Appels";
-    return `Distribution > ${distributionPath.join(' > ')}`;
-  };
 
   return (
     <div className="flex flex-col">
@@ -593,31 +511,18 @@ export default function Dashboard() {
             <TabsContent value="call-distribution">
                 <Card>
                     <CardHeader>
-                        <CardTitle>{getBreadcrumb()}</CardTitle>
+                        <CardTitle>Distribution des Appels</CardTitle>
                         <CardDescription>
-                            Cliquez pour explorer la hiérarchie des appels.
-                            {distributionPath.length > 0 && (
-                                <Button variant="link" size="sm" onClick={resetDistributionPath} className="h-auto p-0 ml-2">
-                                    Réinitialiser la vue
-                                </Button>
-                            )}
+                            Nombre total d'appels entrants et sortants.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-8">
-                        <ResponsiveContainer width="100%" height={250}>
-                             <Treemap
-                                data={visibleTreemapData}
-                                dataKey="value"
-                                nameKey="name"
-                                stroke="hsl(var(--card))"
-                                fill="hsl(var(--primary))"
-                                isAnimationActive={false}
-                                content={<TreemapContent />}
-                                onClick={handleDistributionClick}
-                              >
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={distributionChartData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
                                 <Tooltip
-                                    labelFormatter={(name) => name}
-                                    formatter={(value: any, name: any, props: any) => [`${value} calls`, props.payload.name]}
                                     cursor={{ fill: 'hsl(var(--muted))' }}
                                     contentStyle={{
                                         background: 'hsl(var(--background))',
@@ -625,12 +530,13 @@ export default function Dashboard() {
                                         borderRadius: 'var(--radius)',
                                     }}
                                 />
-                            </Treemap>
+                                <Legend />
+                                <Bar dataKey="calls" name="Nombre d'appels" />
+                            </BarChart>
                         </ResponsiveContainer>
                         <div>
                             <h3 className="text-xl font-semibold mb-4">
                                 Journal des appels
-                                {distributionPath.length > 0 && ` - ${distributionPath.join(' / ')}`}
                             </h3>
                             <div className="border rounded-lg">
                                 <Table>
@@ -646,7 +552,7 @@ export default function Dashboard() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {distributionFilteredCalls.map(call => {
+                                        {baseFilteredCalls.map(call => {
                                             const outgoing = isOutgoing(call);
                                             return (
                                             <TableRow key={call.call_id}>
