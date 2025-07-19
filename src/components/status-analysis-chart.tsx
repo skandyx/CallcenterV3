@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -41,27 +42,31 @@ const CustomizedContent = ({ root, depth, x, y, width, height, index, payload, r
           strokeWidth: 2,
         }}
       />
-      <text
-        x={x + width / 2}
-        y={y + height / 2}
-        textAnchor="middle"
-        fill="#fff"
-        fontSize={14}
-        style={{ pointerEvents: 'none' }}
-      >
-        {name}
-      </text>
-      <text
-         x={x + width / 2}
-         y={y + height / 2 + 20}
-         textAnchor="middle"
-         fill="#fff"
-         fontSize={12}
-         fontWeight="bold"
-         style={{ pointerEvents: 'none' }}
-       >
-        {size}
-      </text>
+      {width > 50 && height > 35 && (
+        <>
+          <text
+            x={x + width / 2}
+            y={y + height / 2 - 5}
+            textAnchor="middle"
+            fill="#fff"
+            fontSize={12}
+            style={{ pointerEvents: 'none' }}
+          >
+            {name}
+          </text>
+          <text
+             x={x + width / 2}
+             y={y + height / 2 + 15}
+             textAnchor="middle"
+             fill="#fff"
+             fontSize={12}
+             fontWeight="bold"
+             style={{ pointerEvents: 'none' }}
+           >
+            {size}
+          </text>
+        </>
+      )}
     </g>
   );
 };
@@ -257,3 +262,4 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
     </Card>
   );
 }
+

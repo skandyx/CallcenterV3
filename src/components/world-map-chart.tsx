@@ -54,9 +54,31 @@ const CustomizedTreemapContent = ({ root, depth, x, y, width, height, index, nam
         x={x} y={y} width={width} height={height}
         style={{ fill: COLORS[index % COLORS.length], stroke: '#fff', strokeWidth: 2, cursor: 'pointer' }}
       />
-      <text x={x + width / 2} y={y + height / 2 + 7} textAnchor="middle" fill="#fff" fontSize={14} style={{ pointerEvents: 'none' }}>
-        {name} ({size})
-      </text>
+      {width > 50 && height > 35 && (
+        <>
+            <text 
+                x={x + width / 2} 
+                y={y + height / 2 - 5} 
+                textAnchor="middle" 
+                fill="#fff" 
+                fontSize={12} 
+                style={{ pointerEvents: 'none' }}
+            >
+                {name}
+            </text>
+            <text 
+                x={x + width / 2} 
+                y={y + height / 2 + 15} 
+                textAnchor="middle" 
+                fill="#fff" 
+                fontSize={12} 
+                fontWeight="bold"
+                style={{ pointerEvents: 'none' }}
+            >
+                {size}
+            </text>
+        </>
+      )}
     </g>
   );
 };
