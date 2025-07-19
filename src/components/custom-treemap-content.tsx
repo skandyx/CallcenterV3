@@ -3,15 +3,15 @@
 
 import React from 'react';
 
-// A more diverse and vibrant color palette inspired by the user's image.
 const COLORS = [
-  '#ef4444', // red-500
-  '#a855f7', // purple-500
+  '#6366f1', // indigo-500
+  '#8b5cf6', // violet-500
   '#3b82f6', // blue-500
+  '#10b981', // emerald-500
   '#f97316', // orange-500
-  '#eab308', // yellow-500
-  '#22c55e', // green-500
+  '#ef4444', // red-500
   '#06b6d4', // cyan-500
+  '#d946ef', // fuchsia-500
 ];
 
 export const CustomTreemapContent = (props: any) => {
@@ -24,6 +24,8 @@ export const CustomTreemapContent = (props: any) => {
     if (width <= 0 || height <= 0) {
         return null;
     }
+
+    const textToShow = size ? `${name} (${size})` : name;
 
     return (
         <g>
@@ -40,27 +42,16 @@ export const CustomTreemapContent = (props: any) => {
                 }}
             />
             {/* Render text only if the block is large enough to be legible */}
-            {width > 80 && height > 40 ? (
+            {width > 80 && height > 25 ? (
                 <text
                     x={x + width / 2}
                     y={y + height / 2}
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    fill="#000" // Black text for better contrast on light backgrounds
+                    fill="#fff"
                     className="text-base font-medium"
                 >
-                    {name}
-                </text>
-            ) : null}
-            {width > 80 && height > 55 ? ( // Ensure there's enough space for the second line
-                <text
-                    x={x + width / 2}
-                    y={y + height / 2 + 20}
-                    textAnchor="middle"
-                    fill="#000"
-                    className="text-sm"
-                >
-                    {size}
+                    {textToShow}
                 </text>
             ) : null}
         </g>
