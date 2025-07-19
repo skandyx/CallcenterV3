@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import type {
   CallData, AdvancedCallData, AgentStatusData, ProfileAvailabilityData
 } from "@/types";
@@ -143,23 +144,18 @@ export default function DashboardClient({
     ? filteredCalls.filter(call => getCountryFromNumber(call.calling_number) === selectedCountry)
     : filteredCalls;
     
-  const statusTreemapData = Object.values(filteredCalls.reduce((acc, call) => {
-    const mainStatus = call.status || 'N/A';
-    const detailStatus = call.status_detail || mainStatus;
-
-    if (!acc[mainStatus]) {
-      acc[mainStatus] = { name: mainStatus, children: {} };
-    }
-    if (!acc[mainStatus].children[detailStatus]) {
-      acc[mainStatus].children[detailStatus] = { name: detailStatus, value: 0 };
-    }
-    acc[mainStatus].children[detailStatus].value++;
-    return acc;
-  }, {} as Record<string, { name: string; children: Record<string, { name: string; value: number }> }>))
-  .map(main => ({
-    name: main.name,
-    children: Object.values(main.children),
-  }));
+  const statusTreemapData = React.useMemo(() => {
+    return Object.values(
+      filteredCalls.reduce((acc, call) => {
+        const detailStatus = call.status_detail || call.status || 'N/A';
+        if (!acc[detailStatus]) {
+          acc[detailStatus] = { name: detailStatus, size: 0 };
+        }
+        acc[detailStatus].size++;
+        return acc;
+      }, {} as Record<string, { name: string; size: number }>)
+    );
+  }, [filteredCalls]);
 
   const handleStatusClick = (statusName: string) => {
     setSelectedStatus(prev => (prev === statusName ? null : statusName));
@@ -399,7 +395,7 @@ export default function DashboardClient({
                   <ResponsiveContainer width="100%" height={250}>
                     <Treemap
                       data={statusTreemapData}
-                      dataKey="value"
+                      dataKey="size"
                       stroke="hsl(var(--card))"
                       fill="hsl(var(--primary))"
                       isAnimationActive={false}
@@ -484,6 +480,29 @@ export default function DashboardClient({
                     )}
                   </div>
 
+                  <ResponsiveContainer width="100%" height={250}>
+                        <Treemap
+                            data={countryDataArray}
+                            dataKey="value"
+                            stroke="hsl(var(--card))"
+                            fill="hsl(var(--primary))"
+                            isAnimationActive={false}
+                            content={<TreemapContent />}
+                            onClick={(data) => handleCountryClick(data.name)}
+                        >
+                            <Tooltip
+                                labelFormatter={(name) => name}
+                                formatter={(value: any, name: any) => [value, 'calls']}
+                                cursor={{fill: 'hsl(var(--muted))'}}
+                                contentStyle={{
+                                    background: 'hsl(var(--background))',
+                                    borderColor: 'hsl(var(--border))',
+                                    borderRadius: 'var(--radius)',
+                                }}
+                            />
+                        </Treemap>
+                    </ResponsiveContainer>
+
                   <div>
                     <h3 className="text-xl font-semibold mb-4">
                         Journal des appels {selectedCountry && ` - ${selectedCountry}`}
@@ -524,3 +543,4 @@ export default function DashboardClient({
     </div>
   );
 }
+
