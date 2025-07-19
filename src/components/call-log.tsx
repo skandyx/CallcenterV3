@@ -163,7 +163,7 @@ export default function CallLog({ data }: { data: CallData[] }) {
                         <span>{call.calling_number}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{call.queue_name || "Direct call"}</TableCell>
+                    <TableCell>{call.queue_name || "-"}</TableCell>
                     <TableCell>{call.agent || "N/A"}</TableCell>
                     <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
                     <TableCell>{call.processing_time_seconds || 0}s</TableCell>
