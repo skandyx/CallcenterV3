@@ -32,37 +32,21 @@ import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { TreemapContent } from '@/components/treemap-content';
 import { Button } from '@/components/ui/button';
 
-interface DashboardProps {
-  initialCalls: CallData[];
-  initialAdvancedCalls: AdvancedCallData[];
-  initialAgentStatus: AgentStatusData[];
-  initialProfileAvailability: ProfileAvailabilityData[];
-}
-
-export default function Dashboard({
-    initialCalls,
-    initialAdvancedCalls,
-    initialAgentStatus,
-    initialProfileAvailability
-}: DashboardProps) {
-  const [calls, setCalls] = useState<CallData[]>(initialCalls || []);
-  const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>(initialAdvancedCalls || []);
-  const [agentStatus, setAgentStatus] = useState<AgentStatusData[]>(initialAgentStatus || []);
-  const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>(initialProfileAvailability || []);
+export default function Dashboard() {
+  const [calls, setCalls] = useState<CallData[]>([]);
+  const [advancedCalls, setAdvancedCalls] = useState<AdvancedCallData[]>([]);
+  const [agentStatus, setAgentStatus] = useState<AgentStatusData[]>([]);
+  const [profileAvailability, setProfileAvailability] = useState<ProfileAvailabilityData[]>([]);
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
-  // State for the distribution treemap
   const [distributionFilter, setDistributionFilter] = useState<{ type: string | null, country: string | null }>({ type: null, country: null });
-
-  // Filter states for each tab
   const [simplifiedCallsFilter, setSimplifiedCallsFilter] = useState('');
   const [simplifiedCallsStatusFilter, setSimplifiedCallsStatusFilter] = useState('all');
   const [advancedCallsFilter, setAdvancedCallsFilter] = useState('');
   const [profileAvailabilityFilter, setProfileAvailabilityFilter] = useState('');
   const [agentConnectionsFilter, setAgentConnectionsFilter] = useState('');
-
+  const [statusTreemapFilter, setStatusTreemapFilter] = useState<string | null>(null);
 
   const timeFormat: Intl.DateTimeFormatOptions = {
     hour: '2-digit',
@@ -88,8 +72,9 @@ export default function Dashboard({
   }
 
   useEffect(() => {
-    const interval = setInterval(fetchData, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval); // Cleanup on component unmount
+    fetchData(); // Initial fetch
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const filterByDate = (items: any[], dateKey: string) => {
@@ -131,16 +116,14 @@ export default function Dashboard({
     }, {} as Record<string, { name: string; size: number }>));
   }, [baseFilteredCalls]);
 
-
   const handleStatusClick = (statusName: string) => {
-    setSelectedStatus(prev => (prev === statusName ? null : statusName));
+    setStatusTreemapFilter(prev => (prev === statusName ? null : statusName));
   };
 
-  const statusFilteredCalls = selectedStatus
-    ? baseFilteredCalls.filter(call => (call.status === selectedStatus || call.status_detail === selectedStatus))
+  const statusFilteredCalls = statusTreemapFilter
+    ? baseFilteredCalls.filter(call => (call.status === statusTreemapFilter || call.status_detail === statusTreemapFilter))
     : baseFilteredCalls;
 
-  // Fully filtered data for tables
   const filteredSimplifiedCalls = baseFilteredCalls.filter(call => {
     const searchTerm = simplifiedCallsFilter.toLowerCase();
     const statusMatch = simplifiedCallsStatusFilter === 'all' || call.status === simplifiedCallsStatusFilter;
@@ -177,39 +160,42 @@ export default function Dashboard({
     );
   });
 
- const distributionTreemapData = React.useMemo(() => {
-    const data = baseFilteredCalls.reduce((acc, call) => {
-        const type = isOutgoing(call) ? 'Outbound' : 'Inbound';
-        const country = getCountryFromNumber(call.calling_number);
+  const distributionTreemapData = React.useMemo(() => {
+    const hierarchy = {
+      Inbound: {} as Record<string, number>,
+      Outbound: {} as Record<string, number>,
+    };
 
-        if (!acc[type]) {
-            acc[type] = { name: type, children: {} };
+    baseFilteredCalls.forEach(call => {
+      const type = isOutgoing(call) ? 'Outbound' : 'Inbound';
+      const country = getCountryFromNumber(call.calling_number);
+      if (country !== 'Other' && country !== 'Unknown') {
+        if (!hierarchy[type][country]) {
+          hierarchy[type][country] = 0;
         }
-        if (country !== 'Other' && country !== 'Unknown') {
-          if (!acc[type].children[country]) {
-              acc[type].children[country] = { name: country, value: 0 };
-          }
-          acc[type].children[country].value++;
-        }
-        return acc;
-    }, {} as Record<string, { name: string; children: Record<string, { name: string, value: number }> }>);
+        hierarchy[type][country]++;
+      }
+    });
 
-    return Object.values(data).map(type => ({
-      name: type.name,
-      children: Object.values(type.children),
-      size: Object.values(type.children).reduce((sum, child) => sum + child.value, 0)
+    return Object.entries(hierarchy).map(([typeName, countries]) => ({
+      name: typeName,
+      size: Object.values(countries).reduce((sum, count) => sum + count, 0),
+      children: Object.entries(countries).map(([countryName, count]) => ({
+        name: countryName,
+        value: count,
+      })),
     }));
   }, [baseFilteredCalls]);
 
   const handleDistributionClick = (data: any) => {
-    if (data.depth === 1) { // Clicked on Inbound/Outbound
+    if (data && data.depth === 1) { // Inbound/Outbound
       setDistributionFilter(prev => ({
         type: prev.type === data.name ? null : data.name,
         country: null,
       }));
-    } else if (data.depth === 2) { // Clicked on a country
+    } else if (data && data.depth === 2) { // Country
       setDistributionFilter(prev => ({
-        type: prev.type,
+        ...prev,
         country: prev.country === data.name ? null : data.name,
       }));
     }
@@ -226,7 +212,6 @@ export default function Dashboard({
   const treemapDisplayData = distributionFilter.type
       ? distributionTreemapData.find(d => d.name === distributionFilter.type)?.children || []
       : distributionTreemapData;
-
 
   return (
     <div className="flex flex-col">
@@ -523,7 +508,7 @@ export default function Dashboard({
                   </ResponsiveContainer>
                    <div>
                     <h3 className="text-xl font-semibold mb-4">
-                        Journal des appels {selectedStatus && ` - ${selectedStatus}`}
+                        Journal des appels {statusTreemapFilter && ` - ${statusTreemapFilter}`}
                     </h3>
                      <div className="border rounded-lg">
                       <Table>
