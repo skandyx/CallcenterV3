@@ -38,7 +38,7 @@ export default function BillingLog({ advancedCalls, profileAvailability }: Billi
       profileMap.set(key, p);
     });
 
-    const standardProfiles = ['user_id', 'user', 'date', 'hour', 'email', 'Available', 'Lunch', 'Meeting', 'Left for the day'];
+    const standardProfiles = ['user_id', 'user', 'date', 'hour', 'email', 'Available', 'Lunch', 'Meeting', 'Left for the day', 'OTHER'];
 
     const result: BillingData[] = outgoingCalls.map(call => {
       const callTime = new Date(call.enter_datetime);
@@ -54,7 +54,8 @@ export default function BillingLog({ advancedCalls, profileAvailability }: Billi
         const activeProfile = Object.keys(agentProfile).find(key => 
           !standardProfiles.includes(key) && agentProfile[key] > 0
         );
-        usedProfile = activeProfile || 'Available'; // Default to 'Available' if no specific profile is active but data exists
+        // If a profile record exists but no specific profile is active, default to "Available"
+        usedProfile = activeProfile || 'Available';
       }
 
       return {
