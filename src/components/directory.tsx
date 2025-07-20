@@ -1,7 +1,7 @@
 // src/components/directory.tsx
 "use client";
 
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { CallData, AdvancedCallData } from '@/types';
 import {
   Table,
@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from './ui/badge';
 import { User, Phone, Users } from 'lucide-react';
+import { Input } from './ui/input';
 
 interface DirectoryProps {
   calls: CallData[];
@@ -27,6 +28,8 @@ interface DirectoryEntry {
 }
 
 export default function Directory({ calls, advancedCalls }: DirectoryProps) {
+  const [filter, setFilter] = useState('');
+
   const directoryData = useMemo(() => {
     const entries = new Map<string, DirectoryEntry>();
     const allCalls = [...calls, ...advancedCalls];
@@ -58,8 +61,18 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
       }
     });
 
-    return Array.from(entries.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [calls, advancedCalls]);
+    const allEntries = Array.from(entries.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+    if (!filter) {
+        return allEntries;
+    }
+
+    const lowercasedFilter = filter.toLowerCase();
+    return allEntries.filter(entry =>
+        entry.name.toLowerCase().includes(lowercasedFilter) ||
+        entry.number.toLowerCase().includes(lowercasedFilter)
+    );
+  }, [calls, advancedCalls, filter]);
 
   const getIconForType = (type: DirectoryEntry['type']) => {
     switch(type) {
@@ -81,6 +94,14 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
         <CardDescription>
           Liste de tous les agents, files d'attente et IVR avec leurs numéros associés.
         </CardDescription>
+        <div className="pt-2">
+            <Input
+                placeholder="Filtrer par nom ou numéro..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="max-w-sm"
+            />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="border rounded-md">
