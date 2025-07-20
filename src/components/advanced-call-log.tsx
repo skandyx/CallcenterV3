@@ -56,12 +56,12 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
 
     // Pass 2: Process groups
     callGroups.forEach((group) => {
-        // Sort all calls within the group chronologically
+        // Sort all calls within the group chronologically (ascending)
         group.sort((a,b) => new Date(a.enter_datetime).getTime() - new Date(b.enter_datetime).getTime());
         finalGroups.push(group);
     });
 
-    // Sort all the groups based on their root call's datetime, descending
+    // Sort all the groups based on their root call's datetime, descending (most recent first)
     return finalGroups.sort((groupA, groupB) => {
         const timeA = new Date(groupA[0].enter_datetime).getTime();
         const timeB = new Date(groupB[0].enter_datetime).getTime();
