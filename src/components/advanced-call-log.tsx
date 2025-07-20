@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo, Fragment } from "react";
@@ -131,7 +132,7 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
     const isOutgoing = item.status_detail?.toLowerCase().includes("outgoing");
 
     const callerDisplay = isOutgoing ? item.agent : item.calling_number;
-    const agentDisplay = isOutgoing ? item.calling_number : item.agent;
+    const calleeDisplay = isOutgoing ? item.calling_number : item.agent;
 
     return (
        <TableRow 
@@ -147,7 +148,7 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
                 </div>
               )}
                <div className={cn("flex-1", isChild && "pl-0")}>
-                  <div>{new Date(item.enter_datetime).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })}</div>
+                  <div>{new Date(item.enter_datetime).toLocaleDateString('fr-FR')}</div>
                   <div className="text-muted-foreground text-xs">{new Date(item.enter_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</div>
                </div>
             </div>
@@ -179,7 +180,7 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
           </TableCell>
           <TableCell className="align-top">{item.status === 'IVR' ? 'IVR' : '-'}</TableCell>
           <TableCell className="align-top">{item.queue_name || "-"}</TableCell>
-          <TableCell className="align-top">{agentDisplay || "N/A"}</TableCell>
+          <TableCell className="align-top">{calleeDisplay || "-"}</TableCell>
           <TableCell className="align-top">
             {item.status !== 'IVR' && <Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>}
              {item.status === 'IVR' && "-"}

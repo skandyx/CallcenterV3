@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SettingsDialog } from "@/components/settings-dialog";
@@ -5,7 +6,6 @@ import { Button } from "./ui/button";
 import { CalendarIcon, Monitor } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
-import { format } from "date-fns";
 import { StreamStatusIndicator } from "./stream-status-indicator";
 
 interface PageHeaderProps {
@@ -34,7 +34,7 @@ export default function PageHeader({ title, selectedDate, onDateChange }: PageHe
                             <Button variant="outline" size="sm" className="h-8 gap-1">
                                 <CalendarIcon className="h-3.5 w-3.5" />
                                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                                    {selectedDate ? selectedDate.toLocaleDateString('fr-FR') : "Pick a date"}
                                 </span>
                             </Button>
                         </PopoverTrigger>

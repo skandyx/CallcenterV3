@@ -15,7 +15,6 @@ import type { CallData } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Input } from "./ui/input";
@@ -256,7 +255,7 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
 
                        return (
                        <TableRow key={`${call.call_id}-${index}`}>
-                           <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
+                           <TableCell>{new Date(call.enter_datetime).toLocaleDateString('fr-FR')}</TableCell>
                            <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</TableCell>
                            <TableCell>
                              <div className="flex items-center gap-2">

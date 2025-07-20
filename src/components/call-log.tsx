@@ -157,7 +157,7 @@ export default function CallLog({ data }: { data: CallData[] }) {
                   return (
                   <TableRow key={`${call.call_id}-${index}`}>
                      <TableCell>
-                      <div>{new Date(call.enter_datetime).toLocaleDateString()}</div>
+                      <div>{new Date(call.enter_datetime).toLocaleDateString('fr-FR')}</div>
                       <div className="text-xs text-muted-foreground">{new Date(call.enter_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</div>
                     </TableCell>
                     <TableCell className="font-medium">

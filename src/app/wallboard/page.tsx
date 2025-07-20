@@ -1,3 +1,4 @@
+
 // src/app/wallboard/page.tsx
 import { readAgentStatus, readCalls } from "@/lib/data";
 import PageHeader from "@/components/page-header";
@@ -87,7 +88,7 @@ export default async function WallboardPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{agent.queuename}</TableCell>
-                    <TableCell>{new Date(agent.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(agent.date).toLocaleDateString('fr-FR')}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

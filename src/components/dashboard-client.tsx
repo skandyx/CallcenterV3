@@ -284,7 +284,7 @@ export default function DashboardClient() {
                         paginatedProfileAvailability.map((profile, index) => (
                           <TableRow key={`${profile.user_id}-${profile.date}-${profile.hour}-${index}`}>
                             <TableCell>{profile.user}</TableCell>
-                            <TableCell>{new Date(profile.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{new Date(profile.date).toLocaleDateString('fr-FR')}</TableCell>
                             <TableCell>{profile.hour}:00</TableCell>
                             {availableProfileKeys.map(key => (
                                 <TableCell key={key}>{profile[key] || 0}</TableCell>
@@ -339,7 +339,7 @@ export default function DashboardClient() {
                     <TableBody>
                       {paginatedAgentStatus.map((status, index) => (
                         <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
-                          <TableCell>{new Date(status.date).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(status.date).toLocaleDateString('fr-FR')}</TableCell>
                           <TableCell>{status.hour}:00</TableCell>
                           <TableCell>{status.user}</TableCell>
                           <TableCell>{status.queuename}</TableCell>
