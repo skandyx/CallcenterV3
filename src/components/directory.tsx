@@ -15,20 +15,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from './ui/badge';
 import { User, Phone, Users } from 'lucide-react';
 import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface DirectoryProps {
   calls: CallData[];
   advancedCalls: AdvancedCallData[];
 }
 
+type DirectoryEntryType = 'Agent' | 'File' | 'IVR';
+
 interface DirectoryEntry {
   name: string;
   number: string;
-  type: 'Agent' | 'File' | 'IVR';
+  type: DirectoryEntryType;
 }
 
 export default function Directory({ calls, advancedCalls }: DirectoryProps) {
   const [filter, setFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const directoryData = useMemo(() => {
     const entries = new Map<string, DirectoryEntry>();
@@ -37,58 +41,60 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
     allCalls.forEach(call => {
       const { agent, agent_number, queue_name, status, time_in_queue_seconds } = call;
 
-      let entityType: 'Agent' | 'File' | 'IVR' | null = null;
-      let entityName: string | undefined = agent?.trim();
-      let entityNumber: string | undefined = agent_number;
-
-      if (status === 'IVR' && agent) {
-        entityType = 'IVR';
-      } else if (time_in_queue_seconds !== undefined && queue_name) {
-         // This is a queue
-         if (!entries.has(queue_name.trim())) {
-             entries.set(queue_name.trim(), {
-                 name: queue_name.trim(),
-                 number: agent_number || 'N/A', // A queue itself doesn't have a number, but we can associate one from an agent.
-                 type: 'File',
-             });
-         }
-         // The agent associated with this queue call should be added as an agent.
-         entityType = 'Agent';
-      } else if (agent && agent_number) {
-        // Default to Agent if not specified otherwise
-        entityType = 'Agent';
-      }
-
-      if (entityType && entityName && entityNumber && !entries.has(entityName)) {
-        entries.set(entityName, {
-          name: entityName,
-          number: entityNumber,
-          type: entityType,
+      // Handle IVR entries from `agent` field when status is IVR
+      if (status === 'IVR' && agent && !entries.has(agent.trim())) {
+        entries.set(agent.trim(), {
+            name: agent.trim(),
+            number: agent_number || 'N/A',
+            type: 'IVR',
         });
       }
       
-      // Separately, always try to add queues from queue_name if available
+      // Handle Queue entries from `queue_name` field
       if (queue_name && !entries.has(queue_name.trim())) {
         entries.set(queue_name.trim(), {
-            name: queue_name.trim(),
-            number: agent_number || 'N/A',
-            type: 'File',
+          name: queue_name.trim(),
+          number: agent_number || 'N/A', // Associate agent number if available
+          type: 'File',
         });
+      }
+
+      // Handle Agent entries from `agent` field
+      if (agent && agent_number && !entries.has(agent.trim())) {
+        // Avoid re-classifying an IVR or Queue as an Agent
+        const existingEntry = entries.get(agent.trim());
+        if (!existingEntry) {
+            entries.set(agent.trim(), {
+              name: agent.trim(),
+              number: agent_number,
+              type: 'Agent',
+            });
+        }
       }
     });
 
-    const allEntries = Array.from(entries.values()).sort((a, b) => a.name.localeCompare(b.name));
-
-    if (!filter) {
-        return allEntries;
-    }
-
+    const allEntries = Array.from(entries.values());
+    
+    // Apply filters
     const lowercasedFilter = filter.toLowerCase();
-    return allEntries.filter(entry =>
-        entry.name.toLowerCase().includes(lowercasedFilter) ||
-        entry.number.toLowerCase().includes(lowercasedFilter)
-    );
-  }, [calls, advancedCalls, filter]);
+    const filteredEntries = allEntries.filter(entry => {
+        const typeMatch = typeFilter === 'all' || entry.type === typeFilter;
+        const textMatch = !filter ||
+            entry.name.toLowerCase().includes(lowercasedFilter) ||
+            entry.number.toLowerCase().includes(lowercasedFilter);
+        return typeMatch && textMatch;
+    });
+
+    // Sort entries: by Type first (Agent -> File -> IVR), then alphabetically by name
+    const typeOrder: Record<DirectoryEntryType, number> = { 'Agent': 1, 'File': 2, 'IVR': 3 };
+    return filteredEntries.sort((a, b) => {
+      if (a.type !== b.type) {
+        return typeOrder[a.type] - typeOrder[b.type];
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+  }, [calls, advancedCalls, filter, typeFilter]);
 
   const getIconForType = (type: DirectoryEntry['type']) => {
     switch(type) {
@@ -110,13 +116,24 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
         <CardDescription>
           Liste de tous les agents, files d'attente et IVR avec leurs numéros associés.
         </CardDescription>
-        <div className="pt-2">
+        <div className="flex flex-col gap-4 pt-4 md:flex-row md:items-center">
             <Input
                 placeholder="Filtrer par nom ou numéro..."
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 className="max-w-sm"
             />
+             <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                    <SelectValue placeholder="Filtrer par type" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Tous les types</SelectItem>
+                    <SelectItem value="Agent">Agent</SelectItem>
+                    <SelectItem value="File">File</SelectItem>
+                    <SelectItem value="IVR">IVR</SelectItem>
+                </SelectContent>
+            </Select>
         </div>
       </CardHeader>
       <CardContent>
