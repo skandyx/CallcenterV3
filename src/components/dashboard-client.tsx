@@ -102,6 +102,19 @@ export default function DashboardClient() {
   const paginatedProfileAvailability = paginate(filteredProfileAvailability, profileAvailabilityPage);
   const paginatedAgentStatus = paginate(filteredAgentStatus, agentStatusPage);
 
+  const availableProfileKeys = useMemo(() => {
+    const keys = new Set<string>();
+    const standardKeys = ['user_id', 'user', 'date', 'hour', 'email'];
+    filteredProfileAvailability.forEach(profile => {
+        Object.keys(profile).forEach(key => {
+            if (!standardKeys.includes(key) && (profile[key] > 0)) {
+                keys.add(key);
+            }
+        });
+    });
+    return Array.from(keys).sort();
+  }, [filteredProfileAvailability]);
+
   const renderPaginationControls = (dataLength: number, page: number, setPage: (page: number) => void) => {
       const totalPages = Math.ceil(dataLength / ITEMS_PER_PAGE);
       if (totalPages <= 1) return null;
@@ -212,7 +225,7 @@ export default function DashboardClient() {
                 <CardHeader>
                   <CardTitle>Disponibilité des profils</CardTitle>
                   <CardDescription>
-                    Les données indiquant le temps passé par chaque utilisateur dans chaque profil. Une ligne pour chaque heure, utilisateur et profil.
+                    Les données indiquant le temps passé par chaque utilisateur dans chaque profil (en minutes).
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -220,22 +233,20 @@ export default function DashboardClient() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Agent</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Hour</TableHead>
-                        <TableHead>Available (min)</TableHead>
-                        <TableHead>Lunch (min)</TableHead>
-                        <TableHead>Meeting (min)</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Heure</TableHead>
+                        {availableProfileKeys.map(key => <TableHead key={key}>{key}</TableHead>)}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedProfileAvailability.map((profile, index) => (
-                        <TableRow key={`${profile.user_id}-${profile.hour}-${index}`}>
+                        <TableRow key={`${profile.user_id}-${profile.date}-${profile.hour}-${index}`}>
                           <TableCell>{profile.user}</TableCell>
-                          <TableCell>{profile.email}</TableCell>
+                          <TableCell>{new Date(profile.date).toLocaleDateString()}</TableCell>
                           <TableCell>{profile.hour}:00</TableCell>
-                          <TableCell>{profile.Available}</TableCell>
-                          <TableCell>{profile.Lunch}</TableCell>
-                          <TableCell>{profile.Meeting}</TableCell>
+                          {availableProfileKeys.map(key => (
+                              <TableCell key={key}>{profile[key] || 0}</TableCell>
+                          ))}
                         </TableRow>
                       ))}
                     </TableBody>
