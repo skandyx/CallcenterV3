@@ -39,35 +39,38 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
     const allCalls = [...calls, ...advancedCalls];
 
     allCalls.forEach(call => {
-      const { agent, agent_number, queue_name, status, time_in_queue_seconds } = call;
+      const { agent, agent_number, queue_name, status } = call;
 
-      // Rule for IVRs: Status is 'IVR', name is from 'agent'
-      if (status === 'IVR' && agent && !entries.has(agent.trim())) {
-        entries.set(agent.trim(), {
-            name: agent.trim(),
-            number: agent_number || 'N/A',
-            type: 'IVR',
-        });
+      const addOrUpdateEntry = (name: string, number: string | undefined, type: DirectoryEntryType) => {
+        const trimmedName = name.trim();
+        const existingEntry = entries.get(trimmedName);
+        
+        // If the entry doesn't exist, or if it exists but has no number, add/update it.
+        // This prioritizes the first valid number found for an entry.
+        if (!existingEntry || (existingEntry.number === 'N/A' && number)) {
+            entries.set(trimmedName, {
+                name: trimmedName,
+                number: number || 'N/A',
+                type: type,
+            });
+        }
+      };
+      
+      // Rule for IVRs
+      if (status === 'IVR' && agent) {
+        addOrUpdateEntry(agent, agent_number, 'IVR');
       }
       
-      // Rule for Queues: `queue_name` is present, number is from `agent_number`
-      if (queue_name && !entries.has(queue_name.trim())) {
-        entries.set(queue_name.trim(), {
-          name: queue_name.trim(),
-          number: agent_number || 'N/A', 
-          type: 'File',
-        });
+      // Rule for Queues
+      if (queue_name) {
+        addOrUpdateEntry(queue_name, agent_number, 'File');
       }
 
-      // Rule for Agents: `agent` and `agent_number` are present.
+      // Rule for Agents
       if (agent && agent_number) {
-        // Avoid re-classifying an IVR or Queue as an Agent
+        // We only add as agent if it's not already classified as something else, to avoid conflicts.
         if (!entries.has(agent.trim())) {
-            entries.set(agent.trim(), {
-              name: agent.trim(),
-              number: agent_number,
-              type: 'Agent',
-            });
+            addOrUpdateEntry(agent, agent_number, 'Agent');
         }
       }
     });
