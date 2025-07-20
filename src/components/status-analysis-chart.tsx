@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -240,14 +241,19 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                         <TableHead>Date</TableHead>
                         <TableHead>Time</TableHead>
                         <TableHead>Caller</TableHead>
-                        <TableHead>Agent</TableHead>
+                        <TableHead>Callee</TableHead>
                         <TableHead>Queue</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Duration</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                   {paginatedCalls.length > 0 ? paginatedCalls.map((call, index) => (
+                   {paginatedCalls.length > 0 ? paginatedCalls.map((call, index) => {
+                       const isOutgoing = call.status_detail?.toLowerCase().includes("outgoing");
+                       const callerDisplay = isOutgoing ? call.agent : call.calling_number;
+                       const calleeDisplay = isOutgoing ? call.calling_number : call.agent;
+
+                       return (
                        <TableRow key={`${call.call_id}-${index}`}>
                            <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
                            <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</TableCell>
@@ -256,11 +262,10 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger>
-                                      {call.status_detail?.toLowerCase().includes("incoming") && (
-                                        <ArrowDownCircle className="h-4 w-4 text-green-500" />
-                                      )}
-                                      {call.status_detail?.toLowerCase().includes("outgoing") && (
+                                      {isOutgoing ? (
                                         <ArrowUpCircle className="h-4 w-4 text-red-500" />
+                                      ) : (
+                                        <ArrowDownCircle className="h-4 w-4 text-green-500" />
                                       )}
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -268,15 +273,15 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
-                                <span>{call.calling_number}</span>
+                                <span>{callerDisplay}</span>
                               </div>
                            </TableCell>
-                           <TableCell>{call.agent || "-"}</TableCell>
+                           <TableCell>{calleeDisplay || "-"}</TableCell>
                            <TableCell>{call.queue_name || "-"}</TableCell>
                            <TableCell><Badge variant={getStatusVariant(call.status)}>{call.status_detail}</Badge></TableCell>
                            <TableCell>{call.processing_time_seconds ?? 0}s</TableCell>
                        </TableRow>
-                   )) : (
+                   )}) : (
                      <TableRow>
                         <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                             No calls found for this filter combination.
