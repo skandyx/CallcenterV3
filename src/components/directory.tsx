@@ -39,14 +39,12 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
     const allCalls = [...calls, ...advancedCalls];
 
     allCalls.forEach(call => {
-      const { agent, agent_number, queue_name, status } = call;
+      const { agent, agent_number, queue_name, status, time_in_queue_seconds } = call;
 
       const addOrUpdateEntry = (name: string, number: string | undefined, type: DirectoryEntryType) => {
         const trimmedName = name.trim();
         const existingEntry = entries.get(trimmedName);
         
-        // If the entry doesn't exist, or if it exists but has no number, add/update it.
-        // This prioritizes the first valid number found for an entry.
         if (!existingEntry || (existingEntry.number === 'N/A' && number)) {
             entries.set(trimmedName, {
                 name: trimmedName,
@@ -56,28 +54,21 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
         }
       };
       
-      // Rule for IVRs
       if (status === 'IVR' && agent) {
         addOrUpdateEntry(agent, agent_number, 'IVR');
       }
       
-      // Rule for Queues
-      if (queue_name) {
+      if (queue_name && time_in_queue_seconds !== undefined) {
         addOrUpdateEntry(queue_name, agent_number, 'File');
       }
 
-      // Rule for Agents
-      if (agent && agent_number) {
-        // We only add as agent if it's not already classified as something else, to avoid conflicts.
-        if (!entries.has(agent.trim())) {
-            addOrUpdateEntry(agent, agent_number, 'Agent');
-        }
+      if (agent && agent_number && !entries.has(agent.trim())) {
+        addOrUpdateEntry(agent, agent_number, 'Agent');
       }
     });
 
     const allEntries = Array.from(entries.values());
     
-    // Apply filters
     const lowercasedFilter = filter.toLowerCase();
     const filteredEntries = allEntries.filter(entry => {
         const typeMatch = typeFilter === 'all' || entry.type.toLowerCase() === typeFilter.toLowerCase();
@@ -87,7 +78,6 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
         return typeMatch && textMatch;
     });
 
-    // Sort entries: by Type first (Agent -> File -> IVR), then alphabetically by name
     const typeOrder: Record<DirectoryEntryType, number> = { 'Agent': 1, 'File': 2, 'IVR': 3 };
     return filteredEntries.sort((a, b) => {
       if (a.type !== b.type) {
