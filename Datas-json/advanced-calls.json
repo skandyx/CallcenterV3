@@ -3137,5 +3137,32 @@
     "internal_call": "No",
     "enter_year": 2025,
     "status": "IVR"
+  },
+  {
+    "enter_week": "202529",
+    "agent": "A-3",
+    "enter_date": "2025-07-19",
+    "processing_time_seconds": 0,
+    "agent_id": "a1dab1d7",
+    "agent_number": "003228829632",
+    "less_than_120s_waittime": 1,
+    "enter_datetime": "2025-07-19T18:17:52.230",
+    "calling_name": "",
+    "enter_weekday": "6.Saturday",
+    "parent_call_id": "d75e8aba-95a3-4d4c-b0eb-73b2bce43bb3",
+    "enter_hour": 18,
+    "less_than_60s_waittime": 1,
+    "enter_month": "202507",
+    "time_in_queue_seconds": 9,
+    "calling_number": "003228807241",
+    "less_than_30s_waittime": 1,
+    "enter_time": "18:17:52",
+    "version": 5,
+    "status_detail": "Abandoned",
+    "call_id": "8009ae6f-bb91-4830-944f-955aea6ec2aa",
+    "queue_name": "A-3",
+    "internal_call": "No",
+    "enter_year": 2025,
+    "status": "Abandoned"
   }
 ]
