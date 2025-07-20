@@ -172,14 +172,7 @@ export default function CallLog({ data }: { data: CallData[] }) {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                         <div>
-                            <div className="font-semibold">{callerDisplay}</div>
-                            {isOutgoing && (
-                                <div className="text-xs text-muted-foreground">
-                                    {call.calling_number}
-                                </div>
-                            )}
-                         </div>
+                         <div className="font-semibold">{callerDisplay}</div>
                       </div>
                     </TableCell>
                     <TableCell>{call.queue_name || "-"}</TableCell>
