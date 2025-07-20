@@ -229,7 +229,7 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
                   <TableHead>Caller</TableHead>
                   <TableHead>IVR</TableHead>
                   <TableHead>Queue</TableHead>
-                  <TableHead>Agent</TableHead>
+                  <TableHead>Callee</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Status Detail</TableHead>
                   <TableHead>Talk Time</TableHead>
@@ -284,4 +284,3 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
     </Card>
   );
 }
-
