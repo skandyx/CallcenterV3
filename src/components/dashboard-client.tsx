@@ -31,6 +31,7 @@ import StatusAnalysisChart from './status-analysis-chart';
 import AdvancedCallLog from './advanced-call-log';
 import CallLog from './call-log';
 import Directory from './directory';
+import { Input } from './ui/input';
 
 export default function DashboardClient() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -43,6 +44,8 @@ export default function DashboardClient() {
   
   const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
   const [agentStatusPage, setAgentStatusPage] = useState(1);
+  const [profileAgentFilter, setProfileAgentFilter] = useState('');
+
 
   const ITEMS_PER_PAGE = 10;
 
@@ -77,13 +80,28 @@ export default function DashboardClient() {
 
   const filterByDate = (items: any[], dateKey: string) => {
     if (!selectedDate) return items;
-    return items.filter(item => new Date(item[dateKey]).toDateString() === selectedDate.toDateString());
+    return items.filter(item => {
+        const itemDate = new Date(item[dateKey]);
+        // Compare year, month, and day. Ignore time.
+        return itemDate.getFullYear() === selectedDate.getFullYear() &&
+               itemDate.getMonth() === selectedDate.getMonth() &&
+               itemDate.getDate() === selectedDate.getDate();
+    });
   }
 
   const filteredCalls = useMemo(() => filterByDate(calls, 'enter_datetime'), [calls, selectedDate]);
   const filteredAdvancedCalls = useMemo(() => filterByDate(advancedCalls, 'enter_datetime'), [advancedCalls, selectedDate]);
   const filteredAgentStatus = useMemo(() => filterByDate(agentStatus, 'date'), [agentStatus, selectedDate]);
-  const filteredProfileAvailability = useMemo(() => filterByDate(profileAvailability, 'date'), [profileAvailability, selectedDate]);
+  
+  const filteredProfileAvailability = useMemo(() => {
+    let data = filterByDate(profileAvailability, 'date');
+    if (profileAgentFilter) {
+      data = data.filter(profile => 
+        profile.user.toLowerCase().includes(profileAgentFilter.toLowerCase())
+      );
+    }
+    return data;
+  }, [profileAvailability, selectedDate, profileAgentFilter]);
 
   const totalCalls = filteredCalls.length;
   const answeredCalls = filteredCalls.filter((c) => c.status !== "Abandoned").length;
@@ -227,6 +245,17 @@ export default function DashboardClient() {
                   <CardDescription>
                     Les données indiquant le temps passé par chaque utilisateur dans chaque profil (en minutes).
                   </CardDescription>
+                  <div className="pt-4">
+                    <Input
+                        placeholder="Filtrer par nom d'agent..."
+                        value={profileAgentFilter}
+                        onChange={(e) => {
+                            setProfileAgentFilter(e.target.value);
+                            setProfileAvailabilityPage(1); 
+                        }}
+                        className="max-w-sm"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -239,16 +268,24 @@ export default function DashboardClient() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedProfileAvailability.map((profile, index) => (
-                        <TableRow key={`${profile.user_id}-${profile.date}-${profile.hour}-${index}`}>
-                          <TableCell>{profile.user}</TableCell>
-                          <TableCell>{new Date(profile.date).toLocaleDateString()}</TableCell>
-                          <TableCell>{profile.hour}:00</TableCell>
-                          {availableProfileKeys.map(key => (
-                              <TableCell key={key}>{profile[key] || 0}</TableCell>
-                          ))}
+                      {paginatedProfileAvailability.length > 0 ? (
+                        paginatedProfileAvailability.map((profile, index) => (
+                          <TableRow key={`${profile.user_id}-${profile.date}-${profile.hour}-${index}`}>
+                            <TableCell>{profile.user}</TableCell>
+                            <TableCell>{new Date(profile.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{profile.hour}:00</TableCell>
+                            {availableProfileKeys.map(key => (
+                                <TableCell key={key}>{profile[key] || 0}</TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={3 + availableProfileKeys.length} className="h-24 text-center">
+                            No results found.
+                          </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </TableBody>
                   </Table>
                    {renderPaginationControls(filteredProfileAvailability.length, profileAvailabilityPage, setProfileAvailabilityPage)}
