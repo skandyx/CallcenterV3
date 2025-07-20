@@ -35,28 +35,44 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
     const allCalls = [...calls, ...advancedCalls];
 
     allCalls.forEach(call => {
-      const { agent, agent_number, queue_name, status } = call;
+      const { agent, agent_number, queue_name, status, time_in_queue_seconds } = call;
 
-      // Add agents
-      if (agent && agent_number && !entries.has(agent.trim())) {
-        entries.set(agent.trim(), {
-          name: agent.trim(),
-          number: agent_number,
-          type: 'Agent',
-        });
+      let entityType: 'Agent' | 'File' | 'IVR' | null = null;
+      let entityName: string | undefined = agent?.trim();
+      let entityNumber: string | undefined = agent_number;
+
+      if (status === 'IVR' && agent) {
+        entityType = 'IVR';
+      } else if (time_in_queue_seconds !== undefined && queue_name) {
+         // This is a queue
+         if (!entries.has(queue_name.trim())) {
+             entries.set(queue_name.trim(), {
+                 name: queue_name.trim(),
+                 number: agent_number || 'N/A', // A queue itself doesn't have a number, but we can associate one from an agent.
+                 type: 'File',
+             });
+         }
+         // The agent associated with this queue call should be added as an agent.
+         entityType = 'Agent';
+      } else if (agent && agent_number) {
+        // Default to Agent if not specified otherwise
+        entityType = 'Agent';
       }
 
-      // Add queues
-      if (queue_name && agent_number && !entries.has(queue_name.trim())) {
-        let type: DirectoryEntry['type'] = 'File';
-        if (status === 'IVR') {
-            type = 'IVR';
-        }
-
+      if (entityType && entityName && entityNumber && !entries.has(entityName)) {
+        entries.set(entityName, {
+          name: entityName,
+          number: entityNumber,
+          type: entityType,
+        });
+      }
+      
+      // Separately, always try to add queues from queue_name if available
+      if (queue_name && !entries.has(queue_name.trim())) {
         entries.set(queue_name.trim(), {
-          name: queue_name.trim(),
-          number: agent_number,
-          type: type,
+            name: queue_name.trim(),
+            number: agent_number || 'N/A',
+            type: 'File',
         });
       }
     });
