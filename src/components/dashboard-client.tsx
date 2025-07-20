@@ -331,8 +331,8 @@ export default function DashboardClient() {
                         <TableHead>Heure</TableHead>
                         <TableHead>Agent</TableHead>
                         <TableHead>File d'attente</TableHead>
-                        <TableHead>Disponible (min)</TableHead>
-                        <TableHead>En Pause</TableHead>
+                        <TableHead>connecté (min)</TableHead>
+                        <TableHead>Disponible</TableHead>
                         <TableHead>Déconnecté (min)</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -368,3 +368,4 @@ export default function DashboardClient() {
     </div>
   );
 }
+
