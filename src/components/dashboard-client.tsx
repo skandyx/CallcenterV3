@@ -327,24 +327,24 @@ export default function DashboardClient() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Agent</TableHead>
-                        <TableHead>File d'attente</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Heure</TableHead>
-                        <TableHead>Connecté (min)</TableHead>
-                        <TableHead>En pause (min)</TableHead>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>File d'attente</TableHead>
+                        <TableHead>Disponible (min)</TableHead>
+                        <TableHead>En Pause</TableHead>
                         <TableHead>Déconnecté (min)</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedAgentStatus.map((status, index) => (
                         <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
-                          <TableCell>{status.user}</TableCell>
-                          <TableCell>{status.queuename}</TableCell>
                           <TableCell>{new Date(status.date).toLocaleDateString()}</TableCell>
                           <TableCell>{status.hour}:00</TableCell>
+                          <TableCell>{status.user}</TableCell>
+                          <TableCell>{status.queuename}</TableCell>
                           <TableCell>{status.loggedIn}</TableCell>
-                          <TableCell>{status.idle}</TableCell>
+                          <TableCell>{status.idle >= 60 ? 'Oui' : 'Non'}</TableCell>
                           <TableCell>{status.loggedOut}</TableCell>
                         </TableRow>
                       ))}
