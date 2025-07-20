@@ -99,7 +99,7 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
     data
       .filter(call => (call.status_detail || "N/A") === selectedStatus)
       .forEach(call => {
-        const agent = call.agent || "Unassigned";
+        const agent = call.agent || "-";
         agentCounts[agent] = (agentCounts[agent] || 0) + 1;
       });
     return Object.entries(agentCounts)
@@ -113,7 +113,7 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
     const lowercasedFilter = textFilter.toLowerCase();
     return data.filter(call => {
         const statusMatch = selectedStatus ? (call.status_detail || "N/A") === selectedStatus : true;
-        const agentMatch = selectedAgent ? (call.agent || "Unassigned") === selectedAgent : true;
+        const agentMatch = selectedAgent ? (call.agent || "-") === selectedAgent : true;
         const textSearchMatch = !lowercasedFilter || Object.values(call).some(val => 
             String(val).toLowerCase().includes(lowercasedFilter)
         );
@@ -241,8 +241,9 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                         <TableHead>Date</TableHead>
                         <TableHead>Time</TableHead>
                         <TableHead>Caller</TableHead>
-                        <TableHead>Callee</TableHead>
+                        <TableHead>IVR</TableHead>
                         <TableHead>Queue</TableHead>
+                        <TableHead>Callee</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Duration</TableHead>
                     </TableRow>
@@ -276,14 +277,15 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                                 <span>{callerDisplay}</span>
                               </div>
                            </TableCell>
-                           <TableCell>{calleeDisplay || "-"}</TableCell>
+                           <TableCell>{call.status === 'IVR' ? 'IVR' : '-'}</TableCell>
                            <TableCell>{call.queue_name || "-"}</TableCell>
+                           <TableCell>{calleeDisplay || "-"}</TableCell>
                            <TableCell><Badge variant={getStatusVariant(call.status)}>{call.status_detail}</Badge></TableCell>
                            <TableCell>{call.processing_time_seconds ?? 0}s</TableCell>
                        </TableRow>
                    )}) : (
                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                             No calls found for this filter combination.
                         </TableCell>
                      </TableRow>
