@@ -17,7 +17,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import { Input } from "./ui/input";
 
+const ROWS_PER_PAGE = 10;
 
 // Helper function to generate a color palette
 const COLORS = [
@@ -75,6 +77,8 @@ const CustomizedContent = ({ root, depth, x, y, width, height, index, payload, r
 export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [textFilter, setTextFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const chartData = useMemo(() => {
     // If no status is selected, show breakdown by status_detail
@@ -105,12 +109,23 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
 
 
   const filteredCalls = useMemo(() => {
+    const lowercasedFilter = textFilter.toLowerCase();
     return data.filter(call => {
         const statusMatch = selectedStatus ? (call.status_detail || "N/A") === selectedStatus : true;
         const agentMatch = selectedAgent ? (call.agent || "Unassigned") === selectedAgent : true;
-        return statusMatch && agentMatch;
+        const textSearchMatch = !lowercasedFilter || Object.values(call).some(val => 
+            String(val).toLowerCase().includes(lowercasedFilter)
+        );
+        return statusMatch && agentMatch && textSearchMatch;
     });
-  }, [data, selectedStatus, selectedAgent]);
+  }, [data, selectedStatus, selectedAgent, textFilter]);
+
+  const totalPages = Math.ceil(filteredCalls.length / ROWS_PER_PAGE);
+  const paginatedCalls = filteredCalls.slice(
+    (currentPage - 1) * ROWS_PER_PAGE,
+    currentPage * ROWS_PER_PAGE
+  );
+
 
   const handleTreemapClick = (item: any) => {
     if (item && item.name) {
@@ -123,6 +138,7 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
         setSelectedAgent(null); // Reset agent filter when status changes
       }
     }
+    setCurrentPage(1); // Reset page on filter change
   };
   
   const getStatusVariant = (
@@ -140,11 +156,13 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
   const clearFilters = () => {
     setSelectedStatus(null);
     setSelectedAgent(null);
+    setCurrentPage(1);
   };
   
   const goBackToStatusView = () => {
       setSelectedStatus(null);
       setSelectedAgent(null);
+      setCurrentPage(1);
   }
 
   return (
@@ -198,15 +216,26 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
               {selectedAgent && ` & ${selectedAgent}`}
               {selectedStatus && `)`}
             </h4>
-            {(selectedStatus || selectedAgent) && (
-              <Button variant="ghost" onClick={clearFilters}>
-                Clear all filters
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+                <Input
+                    placeholder="Filter calls..."
+                    value={textFilter}
+                    onChange={(e) => {
+                        setTextFilter(e.target.value);
+                        setCurrentPage(1);
+                    }}
+                    className="max-w-xs"
+                />
+                {(selectedStatus || selectedAgent) && (
+                  <Button variant="ghost" onClick={clearFilters}>
+                    Clear all filters
+                  </Button>
+                )}
+            </div>
           </div>
-          <ScrollArea className="h-[400px] border rounded-lg">
+          <div className="border rounded-lg">
              <Table>
-                <TableHeader className="sticky top-0 bg-background/95 backdrop-blur z-10">
+                <TableHeader>
                     <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Time</TableHead>
@@ -218,7 +247,7 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                   {filteredCalls.length > 0 ? filteredCalls.map((call, index) => (
+                   {paginatedCalls.length > 0 ? paginatedCalls.map((call, index) => (
                        <TableRow key={`${call.call_id}-${index}`}>
                            <TableCell>{new Date(call.enter_datetime).toLocaleDateString()}</TableCell>
                            <TableCell>{new Date(call.enter_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</TableCell>
@@ -256,11 +285,32 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                    )}
                 </TableBody>
              </Table>
-          </ScrollArea>
+          </div>
+            <div className="flex items-center justify-end pt-4 space-x-2">
+                <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                >
+                Previous
+                </Button>
+                <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages || totalPages === 0}
+                >
+                Next
+                </Button>
+            </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-
-
