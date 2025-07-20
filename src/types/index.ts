@@ -21,6 +21,7 @@ export interface AdvancedCallData {
   status_detail: string;
   agent?: string;
   agent_id?: string;
+  agent_number?: string;
   calling_number: string;
   processing_time_seconds?: number;
   parent_call_id?: string;
@@ -56,11 +57,13 @@ export interface AdvancedCallData {
     call_id: string;
     agent: string;
     agent_id: string;
+    agent_number: string;
     enter_datetime: string;
     calling_number: string;
     processing_time_seconds: number;
     profile: string;
   }
     
+
 
 

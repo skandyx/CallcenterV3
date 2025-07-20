@@ -62,6 +62,7 @@ export default function BillingLog({ advancedCalls, profileAvailability }: Billi
         call_id: call.call_id,
         agent: call.agent || 'N/A',
         agent_id: call.agent_id!,
+        agent_number: call.agent_number || 'N/A',
         enter_datetime: call.enter_datetime,
         calling_number: call.calling_number,
         processing_time_seconds: call.processing_time_seconds || 0,
@@ -116,6 +117,7 @@ export default function BillingLog({ advancedCalls, profileAvailability }: Billi
                 <TableHead>Date & Heure</TableHead>
                 <TableHead>Agent</TableHead>
                 <TableHead>Numéro Appelé</TableHead>
+                <TableHead>Numéro Utilisé (CLI)</TableHead>
                 <TableHead>Durée</TableHead>
                 <TableHead>Profil Utilisé</TableHead>
               </TableRow>
@@ -130,6 +132,7 @@ export default function BillingLog({ advancedCalls, profileAvailability }: Billi
                     </TableCell>
                     <TableCell>{item.agent}</TableCell>
                     <TableCell>{item.calling_number}</TableCell>
+                    <TableCell>{item.agent_number}</TableCell>
                     <TableCell>{item.processing_time_seconds}s</TableCell>
                     <TableCell>
                       <Badge variant={item.profile === 'Unknown' ? 'destructive' : 'secondary'}>{item.profile}</Badge>
@@ -138,7 +141,7 @@ export default function BillingLog({ advancedCalls, profileAvailability }: Billi
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     Aucune donnée de facturation trouvée pour la période sélectionnée.
                   </TableCell>
                 </TableRow>
