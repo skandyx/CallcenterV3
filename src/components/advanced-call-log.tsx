@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { ArrowRightLeft, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { ArrowRightLeft, ArrowDownCircle, ArrowUpCircle, Link } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
@@ -169,11 +169,6 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
                     </TooltipTrigger>
                     <TooltipContent>
                         <p>{item.status_detail}</p>
-                        {item.parent_call_id && isActualTransfer && (
-                          <>
-                            <p className="text-xs text-muted-foreground">ID: {item.parent_call_id}</p>
-                          </>
-                        )}
                     </TooltipContent>
                 </Tooltip>
                </TooltipProvider>
@@ -191,6 +186,14 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
           <TableCell className="align-top">{item.processing_time_seconds ?? 0}s</TableCell>
           <TableCell className="font-mono text-xs text-muted-foreground align-top">
             {item.call_id}
+          </TableCell>
+          <TableCell className="font-mono text-xs text-muted-foreground align-top">
+              {item.parent_call_id ? (
+                  <div className="flex items-center gap-1">
+                      <Link className="h-3 w-3"/>
+                      <span>{item.parent_call_id}</span>
+                  </div>
+              ) : '-'}
           </TableCell>
         </TableRow>
     );
@@ -229,6 +232,7 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
                   <TableHead>Status Detail</TableHead>
                   <TableHead>Talk Time</TableHead>
                   <TableHead>Call ID</TableHead>
+                  <TableHead>Parent Call ID</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -241,7 +245,7 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={9}
+                      colSpan={10}
                       className="h-24 text-center text-muted-foreground"
                     >
                       No advanced call data received for the selected date.
