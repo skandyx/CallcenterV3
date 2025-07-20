@@ -139,7 +139,7 @@ export default function CallLog({ data }: { data: CallData[] }) {
                 <TableHead>Date & Time</TableHead>
                 <TableHead>Caller</TableHead>
                 <TableHead>Queue</TableHead>
-                <TableHead>Agent</TableHead>
+                <TableHead>Callee</TableHead>
                 <TableHead>Wait</TableHead>
                 <TableHead>Talk</TableHead>
                 <TableHead>Status</TableHead>
