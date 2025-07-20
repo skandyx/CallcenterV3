@@ -149,7 +149,12 @@ export default function CallLog({ data }: { data: CallData[] }) {
             </TableHeader>
             <TableBody>
               {paginatedData.length > 0 ? (
-                paginatedData.map((call, index) => (
+                paginatedData.map((call, index) => {
+                  const isOutgoing = call.status_detail?.toLowerCase().includes("outgoing");
+                  const callerDisplay = isOutgoing ? call.agent : call.calling_number;
+                  const agentDisplay = isOutgoing ? call.calling_number : call.agent;
+
+                  return (
                   <TableRow key={`${call.call_id}-${index}`}>
                      <TableCell>
                       <div>{new Date(call.enter_datetime).toLocaleDateString()}</div>
@@ -168,17 +173,17 @@ export default function CallLog({ data }: { data: CallData[] }) {
                           </Tooltip>
                         </TooltipProvider>
                          <div>
-                          {call.status_detail?.toLowerCase().includes("outgoing") && call.agent ? (
-                            <div className="font-semibold">{call.agent}</div>
-                          ) : null}
-                          <div className={call.status_detail?.toLowerCase().includes("outgoing") && call.agent ? "text-xs text-muted-foreground" : ""}>
-                            {call.calling_number}
-                          </div>
-                        </div>
+                            <div className="font-semibold">{callerDisplay}</div>
+                            {isOutgoing && (
+                                <div className="text-xs text-muted-foreground">
+                                    {call.calling_number}
+                                </div>
+                            )}
+                         </div>
                       </div>
                     </TableCell>
                     <TableCell>{call.queue_name || "-"}</TableCell>
-                    <TableCell>{call.agent || "N/A"}</TableCell>
+                    <TableCell>{agentDisplay || "N/A"}</TableCell>
                     <TableCell>{call.time_in_queue_seconds || 0}s</TableCell>
                     <TableCell>{call.processing_time_seconds || 0}s</TableCell>
                     <TableCell>
@@ -198,7 +203,7 @@ export default function CallLog({ data }: { data: CallData[] }) {
                         ) : '-'}
                     </TableCell>
                   </TableRow>
-                ))
+                )})
               ) : (
                 <TableRow>
                   <TableCell
