@@ -32,6 +32,7 @@ import AdvancedCallLog from './advanced-call-log';
 import CallLog from './call-log';
 import Directory from './directory';
 import { Input } from './ui/input';
+import BillingLog from './billing-log';
 
 export default function DashboardClient() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -235,7 +236,7 @@ export default function DashboardClient() {
         </div>
 
         <Tabs defaultValue="simplified-calls">
-            <TabsList className="grid w-full grid-cols-7 bg-muted">
+            <TabsList className="grid w-full grid-cols-8 bg-muted">
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
                 <TabsTrigger value="advanced-calls">Données d'appel avancées</TabsTrigger>
                 <TabsTrigger value="profile-availability">Disponibilité des profils</TabsTrigger>
@@ -243,6 +244,7 @@ export default function DashboardClient() {
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
                 <TabsTrigger value="call-distribution">Call Distribution</TabsTrigger>
                 <TabsTrigger value="directory">Annuaire</TabsTrigger>
+                <TabsTrigger value="billing">Billing</TabsTrigger>
             </TabsList>
             <TabsContent value="simplified-calls">
                 <CallLog data={filteredCalls} />
@@ -344,7 +346,7 @@ export default function DashboardClient() {
                           <TableCell>{status.user}</TableCell>
                           <TableCell>{status.queuename}</TableCell>
                           <TableCell>{status.loggedIn}</TableCell>
-                          <TableCell>{status.idle >= 60 ? 'Oui' : 'Non'}</TableCell>
+                          <TableCell>{status.idle >= 60 ? 'Non' : 'Oui'}</TableCell>
                           <TableCell>{status.loggedOut}</TableCell>
                         </TableRow>
                       ))}
@@ -363,9 +365,11 @@ export default function DashboardClient() {
             <TabsContent value="directory">
                 <Directory calls={calls} advancedCalls={advancedCalls} />
             </TabsContent>
+            <TabsContent value="billing">
+                <BillingLog advancedCalls={filteredAdvancedCalls} profileAvailability={profileAvailability} />
+            </TabsContent>
         </Tabs>
       </main>
     </div>
   );
 }
-

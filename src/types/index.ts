@@ -52,6 +52,15 @@ export interface AdvancedCallData {
     [key: string]: any; // for other dynamic keys like P1, P2...
   }
   
-
+  export interface BillingData {
+    call_id: string;
+    agent: string;
+    agent_id: string;
+    enter_datetime: string;
+    calling_number: string;
+    processing_time_seconds: number;
+    profile: string;
+  }
     
+
 
