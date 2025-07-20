@@ -178,7 +178,7 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
             </div>
           </TableCell>
           <TableCell className="align-top">{item.status === 'IVR' ? 'IVR' : '-'}</TableCell>
-          <TableCell className="align-top">{item.queue_name || "N/A"}</TableCell>
+          <TableCell className="align-top">{item.queue_name || "-"}</TableCell>
           <TableCell className="align-top">{agentDisplay || "N/A"}</TableCell>
           <TableCell className="align-top">
             {item.status !== 'IVR' && <Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>}
