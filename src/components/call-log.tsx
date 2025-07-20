@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -166,7 +167,14 @@ export default function CallLog({ data }: { data: CallData[] }) {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <span>{call.calling_number}</span>
+                         <div>
+                          {call.status_detail?.toLowerCase().includes("outgoing") && call.agent ? (
+                            <div className="font-semibold">{call.agent}</div>
+                          ) : null}
+                          <div className={call.status_detail?.toLowerCase().includes("outgoing") && call.agent ? "text-xs text-muted-foreground" : ""}>
+                            {call.calling_number}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{call.queue_name || "-"}</TableCell>
