@@ -41,7 +41,7 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
     allCalls.forEach(call => {
       const { agent, agent_number, queue_name, status, time_in_queue_seconds } = call;
 
-      // Handle IVR entries from `agent` field when status is IVR
+      // Rule for IVRs: Status is 'IVR', name is from 'agent'
       if (status === 'IVR' && agent && !entries.has(agent.trim())) {
         entries.set(agent.trim(), {
             name: agent.trim(),
@@ -50,20 +50,19 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
         });
       }
       
-      // Handle Queue entries from `queue_name` field
+      // Rule for Queues: `queue_name` is present, number is from `agent_number`
       if (queue_name && !entries.has(queue_name.trim())) {
         entries.set(queue_name.trim(), {
           name: queue_name.trim(),
-          number: agent_number || 'N/A', // Associate agent number if available
+          number: agent_number || 'N/A', 
           type: 'File',
         });
       }
 
-      // Handle Agent entries from `agent` field
-      if (agent && agent_number && !entries.has(agent.trim())) {
+      // Rule for Agents: `agent` and `agent_number` are present.
+      if (agent && agent_number) {
         // Avoid re-classifying an IVR or Queue as an Agent
-        const existingEntry = entries.get(agent.trim());
-        if (!existingEntry) {
+        if (!entries.has(agent.trim())) {
             entries.set(agent.trim(), {
               name: agent.trim(),
               number: agent_number,
@@ -78,7 +77,7 @@ export default function Directory({ calls, advancedCalls }: DirectoryProps) {
     // Apply filters
     const lowercasedFilter = filter.toLowerCase();
     const filteredEntries = allEntries.filter(entry => {
-        const typeMatch = typeFilter === 'all' || entry.type === typeFilter;
+        const typeMatch = typeFilter === 'all' || entry.type.toLowerCase() === typeFilter.toLowerCase();
         const textMatch = !filter ||
             entry.name.toLowerCase().includes(lowercasedFilter) ||
             entry.number.toLowerCase().includes(lowercasedFilter);
