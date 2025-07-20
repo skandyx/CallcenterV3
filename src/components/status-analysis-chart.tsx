@@ -273,7 +273,7 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                            </TableCell>
                            <TableCell>{call.agent || "-"}</TableCell>
                            <TableCell>{call.queue_name || "-"}</TableCell>
-                           <TableCell><Badge variant={getStatusVariant(call.status)}>{call.status}</Badge></TableCell>
+                           <TableCell><Badge variant={getStatusVariant(call.status)}>{call.status_detail}</Badge></TableCell>
                            <TableCell>{call.processing_time_seconds ?? 0}s</TableCell>
                        </TableRow>
                    )) : (
