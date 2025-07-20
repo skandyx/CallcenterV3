@@ -45,6 +45,7 @@ export default function DashboardClient() {
   const [profileAvailabilityPage, setProfileAvailabilityPage] = useState(1);
   const [agentStatusPage, setAgentStatusPage] = useState(1);
   const [profileAgentFilter, setProfileAgentFilter] = useState('');
+  const [agentQueueFilter, setAgentQueueFilter] = useState('');
 
 
   const ITEMS_PER_PAGE = 10;
@@ -91,7 +92,18 @@ export default function DashboardClient() {
 
   const filteredCalls = useMemo(() => filterByDate(calls, 'enter_datetime'), [calls, selectedDate]);
   const filteredAdvancedCalls = useMemo(() => filterByDate(advancedCalls, 'enter_datetime'), [advancedCalls, selectedDate]);
-  const filteredAgentStatus = useMemo(() => filterByDate(agentStatus, 'date'), [agentStatus, selectedDate]);
+  
+  const filteredAgentStatus = useMemo(() => {
+    let data = filterByDate(agentStatus, 'date');
+    if (agentQueueFilter) {
+      const lowercasedFilter = agentQueueFilter.toLowerCase();
+      data = data.filter(status => 
+        status.user.toLowerCase().includes(lowercasedFilter) ||
+        status.queuename.toLowerCase().includes(lowercasedFilter)
+      );
+    }
+    return data;
+  }, [agentStatus, selectedDate, agentQueueFilter]);
   
   const filteredProfileAvailability = useMemo(() => {
     let data = filterByDate(profileAvailability, 'date');
@@ -299,14 +311,26 @@ export default function DashboardClient() {
                   <CardDescription>
                     Données indiquant le temps passé par chaque agent en état connecté, déconnecté ou inactif/en veille par file d'attente.
                   </CardDescription>
+                   <div className="pt-4">
+                    <Input
+                        placeholder="Filtrer par nom d'agent ou de file..."
+                        value={agentQueueFilter}
+                        onChange={(e) => {
+                            setAgentQueueFilter(e.target.value);
+                            setAgentStatusPage(1); 
+                        }}
+                        className="max-w-sm"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Agent</TableHead>
-                        <TableHead>Email</TableHead>
                         <TableHead>File d'attente</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Heure</TableHead>
                         <TableHead>Connecté (min)</TableHead>
                         <TableHead>En pause (min)</TableHead>
                         <TableHead>Déconnecté (min)</TableHead>
@@ -316,8 +340,9 @@ export default function DashboardClient() {
                       {paginatedAgentStatus.map((status, index) => (
                         <TableRow key={`${status.user_id}-${status.queue_id}-${index}`}>
                           <TableCell>{status.user}</TableCell>
-                          <TableCell>{status.email}</TableCell>
                           <TableCell>{status.queuename}</TableCell>
+                          <TableCell>{new Date(status.date).toLocaleDateString()}</TableCell>
+                          <TableCell>{status.hour}:00</TableCell>
                           <TableCell>{status.loggedIn}</TableCell>
                           <TableCell>{status.idle}</TableCell>
                           <TableCell>{status.loggedOut}</TableCell>
