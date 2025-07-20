@@ -30,6 +30,7 @@ import WorldMapChart from './world-map-chart';
 import StatusAnalysisChart from './status-analysis-chart';
 import AdvancedCallLog from './advanced-call-log';
 import CallLog from './call-log';
+import Directory from './directory';
 
 export default function DashboardClient() {
   const [calls, setCalls] = useState<CallData[]>([]);
@@ -191,13 +192,14 @@ export default function DashboardClient() {
         </div>
 
         <Tabs defaultValue="simplified-calls">
-            <TabsList className="grid w-full grid-cols-6 bg-muted">
+            <TabsList className="grid w-full grid-cols-7 bg-muted">
                 <TabsTrigger value="simplified-calls">Données d'appel simplifiées</TabsTrigger>
                 <TabsTrigger value="advanced-calls">Données d'appel avancées</TabsTrigger>
                 <TabsTrigger value="profile-availability">Disponibilité des profils</TabsTrigger>
                 <TabsTrigger value="agent-connections">État des files et des agents</TabsTrigger>
                 <TabsTrigger value="status-analysis">Analyse par statut</TabsTrigger>
                 <TabsTrigger value="call-distribution">Call Distribution</TabsTrigger>
+                <TabsTrigger value="directory">Annuaire</TabsTrigger>
             </TabsList>
             <TabsContent value="simplified-calls">
                 <CallLog data={filteredCalls} />
@@ -284,6 +286,9 @@ export default function DashboardClient() {
             </TabsContent>
             <TabsContent value="call-distribution">
                 <WorldMapChart data={filteredCalls} />
+            </TabsContent>
+            <TabsContent value="directory">
+                <Directory calls={calls} advancedCalls={advancedCalls} />
             </TabsContent>
         </Tabs>
       </main>
