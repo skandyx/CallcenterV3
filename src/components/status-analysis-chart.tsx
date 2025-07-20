@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 
 // Helper function to generate a color palette
@@ -107,7 +107,7 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
   const filteredCalls = useMemo(() => {
     return data.filter(call => {
         const statusMatch = selectedStatus ? (call.status_detail || "N/A") === selectedStatus : true;
-        const agentMatch = selectedAgent ? call.agent === selectedAgent : true;
+        const agentMatch = selectedAgent ? (call.agent || "Unassigned") === selectedAgent : true;
         return statusMatch && agentMatch;
     });
   }, [data, selectedStatus, selectedAgent]);
@@ -242,8 +242,8 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
                                 <span>{call.calling_number}</span>
                               </div>
                            </TableCell>
-                           <TableCell>{call.agent || "N/A"}</TableCell>
-                           <TableCell>{call.queue_name || "Direct call"}</TableCell>
+                           <TableCell>{call.agent || "-"}</TableCell>
+                           <TableCell>{call.queue_name || "-"}</TableCell>
                            <TableCell><Badge variant={getStatusVariant(call.status)}>{call.status}</Badge></TableCell>
                            <TableCell>{call.processing_time_seconds ?? 0}s</TableCell>
                        </TableRow>
@@ -262,4 +262,5 @@ export default function StatusAnalysisChart({ data }: { data: CallData[] }) {
     </Card>
   );
 }
+
 
