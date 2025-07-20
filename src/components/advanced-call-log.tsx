@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, Fragment } from "react";
@@ -127,10 +128,11 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
   
   const renderCallRow = (item: AdvancedCallData, isChild: boolean) => {
     const isActualTransfer = item.status_detail.toLowerCase().includes('transfer');
-    
-    // Display agent name only if it's different from the queue name
-    const agentDisplay = (item.agent?.trim() === item.queue_name?.trim()) ? "-" : item.agent || "N/A";
-    
+    const isOutgoing = item.status_detail?.toLowerCase().includes("outgoing");
+
+    const callerDisplay = isOutgoing ? item.agent : item.calling_number;
+    const agentDisplay = isOutgoing ? item.calling_number : item.agent;
+
     return (
        <TableRow 
             key={item.call_id}
@@ -172,12 +174,12 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
                     </TooltipContent>
                 </Tooltip>
                </TooltipProvider>
-              <span>{item.calling_number}</span>
+              <span>{callerDisplay}</span>
             </div>
           </TableCell>
           <TableCell className="align-top">{item.status === 'IVR' ? 'IVR' : '-'}</TableCell>
           <TableCell className="align-top">{item.queue_name || "N/A"}</TableCell>
-          <TableCell className="align-top">{agentDisplay}</TableCell>
+          <TableCell className="align-top">{agentDisplay || "N/A"}</TableCell>
           <TableCell className="align-top">
             {item.status !== 'IVR' && <Badge variant={getStatusVariant(item.status)}>{item.status}</Badge>}
              {item.status === 'IVR' && "-"}
@@ -282,3 +284,4 @@ export default function AdvancedCallLog({ data }: AdvancedCallLogProps) {
     </Card>
   );
 }
+
